@@ -6509,7 +6509,7 @@ function insertarEstiloPredefinido(tipo) {
 
 // Configuración del repositorio para obtener imágenes dinámicamente
 const GITHUB_REPO = 'proyectoteoriasist-tech/miayudante-teoriasistemas';
-const GITHUB_IMAGES_PATH = 'images'; // Carpeta en GitHub (diferente a la local 'imagenes')
+const GITHUB_IMAGES_PATH = 'imagenes'; // Carpeta donde están las imágenes
 const CACHE_KEY_IMAGENES = 'imagenesDisponibles';
 const CACHE_DURACION = 1000 * 60 * 30; // 30 minutos de caché
 

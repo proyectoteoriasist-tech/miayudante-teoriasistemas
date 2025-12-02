@@ -194,7 +194,7 @@ miayudante-teoriasistemas/
 ├── app.js                  # Lógica de la aplicación
 ├── contenido-teorico.json  # Contenido de módulos y evaluaciones
 ├── readme.md               # Este archivo
-└── images/                 # Carpeta de imágenes (GitHub)
+└── imagenes/               # Carpeta de imágenes
     ├── Caja Negra.png
     ├── Caja Blanca.png
     └── ...
@@ -257,7 +257,7 @@ Las imágenes **NO se incluyen** en el archivo JSON exportado. Para agregar nuev
 ### Pasos para agregar imágenes
 
 1. **Preparar la imagen**: Formato PNG o JPG recomendado
-2. **Subir a GitHub**: Navega a `/images` → "Add file" → "Upload files"
+2. **Subir a GitHub**: Navega a `/imagenes` → "Add file" → "Upload files"
 3. **Nombrar correctamente**: Sin caracteres especiales (ñ, acentos)
 4. **Insertar en el módulo**:
    - En el editor de módulos, click en el botón **🖼️**
