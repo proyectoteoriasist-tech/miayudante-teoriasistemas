@@ -1,4 +1,4 @@
-# 🎓 MiAyudante - Teoría de Sistemas
+# 🎓 MiAyudante - Teoría de Sistemas (desarrollado por Matias Sergio Sgherza 1146341 UADE)
 
 > Plataforma educativa gamificada para el curso de Teoría de Sistemas de UADE
 
@@ -119,6 +119,36 @@ https://tu-sitio.vercel.app/?admin=true
 - **🏆 Editar Insignias**: Personalizar emoji, nombre y descripción de cada insignia.
 - **💾 Exportar JSON**: Descargar toda la configuración para publicar cambios.
 
+### Sistema de Guardado
+
+El panel admin tiene **dos tipos de acciones** con comportamientos diferentes:
+
+#### 🔄 Acciones Inmediatas (se guardan al instante)
+Estas acciones se guardan automáticamente después de confirmar:
+
+| Acción | Comportamiento |
+|--------|----------------|
+| **Agregar módulo** | Se guarda inmediatamente |
+| **Eliminar módulo** | Pide confirmación → Se guarda |
+| **Mover módulo** (↑↓) | Se guarda inmediatamente |
+| **Duplicar módulo** | Se guarda inmediatamente |
+
+#### ✏️ Editores (requieren botón Guardar)
+Al abrir un editor, los cambios quedan pendientes hasta presionar **"💾 Guardar"**:
+
+| Editor | Qué se edita |
+|--------|-------------|
+| **Editar Módulo** | Título, ícono, contenido, secciones |
+| **Configurar Evaluación** | Preguntas, habitaciones, opciones |
+| **Editar Insignia** | Emoji, nombre, descripción |
+
+- Si intentas **cerrar sin guardar** → aparece una advertencia
+- Si **descartas los cambios** → se restaura el estado anterior
+- El botón de guardar cambia a **color naranja** cuando hay cambios pendientes
+
+#### 📤 Sobre la Exportación
+El JSON exportado contiene **únicamente los cambios guardados**. Si tienes un editor abierto con cambios sin guardar, esos cambios **NO se incluirán** en la exportación (verás una advertencia).
+
 ---
 
 ## 🚀 Infraestructura y Hosting
@@ -127,8 +157,8 @@ https://tu-sitio.vercel.app/?admin=true
 
 | Plataforma | Uso | URL |
 |------------|-----|-----|
-| **GitHub** | Repositorio del código fuente | [github.com](https://github.com/login) |
-| **Vercel** | Hosting y deploy automático | [vercel.com](https://vercel.com/login) |
+| **GitHub** | Repositorio del código fuente | [github.com/proyectoteoriasist-tech/miayudante-teoriasistemas](https://github.com/proyectoteoriasist-tech/miayudante-teoriasistemas) |
+| **Vercel** | Hosting y deploy automático | [Vercel Dashboard](https://vercel.com/proyecto-teoria-de-sistemas-uades-projects/miayudante-teoriasistemas) |
 
 ### Credenciales de Acceso
 
@@ -137,7 +167,6 @@ Ambas plataformas están configuradas con la siguiente cuenta de Google:
 | Campo | Valor |
 |-------|-------|
 | **Email** | `proyectoteoriasist@gmail.com` |
-| **Contraseña** | `PlataformaTSUADE#1` |
 
 > 💡 **Importante**: En GitHub y Vercel, usar la opción **"Continuar con Google"** e ingresar con esta cuenta.
 
@@ -195,10 +224,9 @@ miayudante-teoriasistemas/
 - Se descargará `contenido-admin-exportado.json`
 
 #### 3️⃣ Subir a GitHub
-- Ingresa a [github.com/login](https://github.com/login)
+- Ingresa a [github.com/proyectoteoriasist-tech/miayudante-teoriasistemas](https://github.com/proyectoteoriasist-tech/miayudante-teoriasistemas)
 - Click en **"Sign in with Google"**
-- Usa: `proyectoteoriasist@gmail.com` / `PlataformaTSUADE#1`
-- Navega al repositorio **"miayudante-teoriasistemas"**
+- Usa la cuenta: `proyectoteoriasist@gmail.com`
 - Busca el archivo `contenido-teorico.json`
 - Click en el archivo → Click en el ícono de lápiz (✏️)
 - Borra todo → Pega el contenido del archivo descargado
@@ -230,7 +258,19 @@ Las imágenes **NO se incluyen** en el archivo JSON exportado. Para agregar nuev
 1. **Preparar la imagen**: Formato PNG o JPG recomendado
 2. **Subir a GitHub**: Navega a `/imagenes` → "Add file" → "Upload files"
 3. **Nombrar correctamente**: Sin caracteres especiales (ñ, acentos)
-4. **Referenciar en el contenido**: Usar el nombre exacto del archivo
+4. **Insertar en el módulo**:
+   - En el editor de módulos, click en el botón **🖼️**
+   - Se abrirá una galería con todas las imágenes disponibles
+   - Si no ves tu imagen nueva, presiona **🔄** para actualizar la lista
+   - Selecciona la imagen y click en **✓ Insertar**
+
+### Galería de Imágenes Automática
+
+La galería de imágenes se conecta directamente a GitHub y carga automáticamente todas las imágenes disponibles:
+- Se actualiza automáticamente cada 30 minutos
+- Botón 🔄 para forzar actualización inmediata
+- Búsqueda por nombre de imagen
+- Preview antes de insertar
 
 ### Nombres de archivo válidos
 - ✅ `diagrama-sistemas.png`
@@ -276,4 +316,4 @@ Si tienes problemas con la plataforma:
 
 Este proyecto fue desarrollado con fines educativos para UADE.
 
-© 2025 - Desarrollado por Matias Sergio Sgherza Alumno 1146341 - UADE
+© 2025 - Desarrollado por Matias Sergio Sgherza LU 1146341 2do Cuatrimestre Año 2025- UADE
