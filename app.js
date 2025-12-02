@@ -754,10 +754,13 @@ function actualizarSidebar() {
 
 // CHANGE: Added dashboard view function
 function actualizarDashboard() {
-    // Contar solo unidades (excluir módulo 0)
+    // Contar solo unidades (excluir módulo 0 - Bienvenida)
+    const totalUnidades = MODULOS.filter(m => m.id !== 0 && m.insignia !== null).length;
+    const totalInsignias = MODULOS.filter(m => m.insignia !== null).length;
     const unidadesCompletadas = estadoGlobal.modulosCompletados.filter(id => id !== 0).length;
     const insigniasObtenidasNum = estadoGlobal.insigniasDesbloqueadas.length;
     
+    // Actualizar contadores de completadas
     const elemUnidades = document.getElementById("unidadesCompletadasNum");
     if (elemUnidades) {
         elemUnidades.textContent = unidadesCompletadas;
@@ -766,6 +769,17 @@ function actualizarDashboard() {
     const elemInsignias = document.getElementById("insigniasObtenidasNum");
     if (elemInsignias) {
         elemInsignias.textContent = insigniasObtenidasNum;
+    }
+    
+    // Actualizar totales dinámicos
+    const elemTotalUnidades = document.getElementById("totalUnidadesNum");
+    if (elemTotalUnidades) {
+        elemTotalUnidades.textContent = totalUnidades;
+    }
+    
+    const elemTotalInsignias = document.getElementById("totalInsigniasNum");
+    if (elemTotalInsignias) {
+        elemTotalInsignias.textContent = totalInsignias;
     }
 
     // Renderizar rejilla de módulos (solo unidades 1-5, no módulo 0)
@@ -2102,7 +2116,8 @@ let estadoEvaluacion = {
     respuestasHabitacion: {},
     correctasTotales: 0,
     totalPreguntas: 0,
-    verificado: false
+    verificado: false,
+    historialRespuestas: [] // Para guardar todas las respuestas de todas las habitaciones
 };
 
 // Obtener mejor puntaje guardado
@@ -2162,7 +2177,8 @@ function renderizarEvaluacion(moduloId) {
         respuestasHabitacion: {},
         correctasTotales: 0,
         totalPreguntas: totalPreguntas,
-        verificado: false
+        verificado: false,
+        historialRespuestas: []
     };
     
     const mejorPuntaje = obtenerMejorPuntaje(moduloId);
@@ -2399,10 +2415,22 @@ function verificarHabitacion(moduloId) {
     estadoEvaluacion.verificado = true;
     let correctasHabitacion = 0;
     
-    // Mostrar resultados por pregunta
+    // Mostrar resultados por pregunta y guardar en historial
     habitacion.preguntas.forEach((p, idx) => {
         const respuesta = estadoEvaluacion.respuestasHabitacion[idx];
         const esCorrecta = respuesta.seleccionada === respuesta.correcta;
+        
+        // Guardar en historial para el resumen final
+        estadoEvaluacion.historialRespuestas.push({
+            habitacion: estadoEvaluacion.habitacionActual,
+            habitacionNombre: habitacion.nombre,
+            pregunta: p.pregunta,
+            opciones: p.opciones,
+            seleccionada: respuesta.seleccionada,
+            correcta: respuesta.correcta,
+            esCorrecta: esCorrecta,
+            explicacion: p.explicacion || ''
+        });
         
         if (esCorrecta) {
             correctasHabitacion++;
@@ -2524,6 +2552,34 @@ function mostrarResultadosFinales(moduloId) {
                 </div>
             </div>
             
+            <!-- Resumen detallado de respuestas -->
+            <div class="resumen-detallado">
+                <h3 class="resumen-titulo">📋 Resumen de Respuestas</h3>
+                <div class="resumen-lista">
+                    ${estadoEvaluacion.historialRespuestas.map((resp, i) => `
+                        <div class="resumen-item ${resp.esCorrecta ? 'resumen-correcto' : 'resumen-incorrecto'}">
+                            <div class="resumen-numero">${i + 1}</div>
+                            <div class="resumen-contenido">
+                                <p class="resumen-habitacion">🏠 ${resp.habitacionNombre}</p>
+                                <p class="resumen-definicion">${resp.pregunta}</p>
+                                <p class="resumen-respuesta">
+                                    <strong>Correcta:</strong> ${resp.opciones[resp.correcta]}
+                                </p>
+                                ${!resp.esCorrecta ? `
+                                    <p class="resumen-tu-respuesta">
+                                        <strong>Tu respuesta:</strong> ${resp.opciones[resp.seleccionada]}
+                                    </p>
+                                ` : ''}
+                                ${resp.explicacion ? `<p class="resumen-explicacion">💡 ${resp.explicacion}</p>` : ''}
+                            </div>
+                            <div class="resumen-estado">
+                                ${resp.esCorrecta ? '✅' : '❌'}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
             <div class="resultado-acciones-final">
                 ${aprobado ? `
                     <button class="boton-accion boton-continuar-modulo" onclick="cerrarEvaluacionYAvanzar()">
@@ -2565,7 +2621,8 @@ function reiniciarEscapeRoom(moduloId) {
         respuestasHabitacion: {},
         correctasTotales: 0,
         totalPreguntas: totalPreguntas,
-        verificado: false
+        verificado: false,
+        historialRespuestas: []
     };
     
     // Reconstruir la intro del Escape Room
@@ -3141,7 +3198,8 @@ function mostrarResultadosPasapalabra(moduloId, tiempoAgotado = false) {
                         </p>
                     ` : ''}
                     ${noRespondida ? `<p class="resumen-tu-respuesta"><strong>No respondida</strong> (tiempo agotado)</p>` : ''}
-        </div>
+                    ${l.explicacion ? `<p class="resumen-explicacion">💡 ${l.explicacion}</p>` : ''}
+                </div>
                 <div class="resumen-estado">
                     ${esCorrecta ? '✅' : noRespondida ? '⏰' : '❌'}
                 </div>
@@ -3663,6 +3721,7 @@ function mostrarResultadosQuiz(moduloId) {
                         </p>
                     ` : ''}
                     ${resp.tiempoAgotado ? `<p class="resumen-tu-respuesta"><strong>Tiempo agotado</strong></p>` : ''}
+                    ${pregData.explicacion ? `<p class="resumen-explicacion">💡 ${pregData.explicacion}</p>` : ''}
                 </div>
                 <div class="resumen-estado">
                     ${resp.correcta ? '✅' : resp.tiempoAgotado ? '⏰' : '❌'}
@@ -4336,17 +4395,43 @@ function mostrarResultadosCasos(moduloId) {
         actualizarDashboard();
     }
     
-    // Resumen por caso
+    // Resumen detallado por caso con preguntas y explicaciones
     let resumenCasos = '';
     evaluacion.casos.forEach((caso, casoIdx) => {
         const respuestasCaso = estadoCasos.respuestas.filter(r => r.caso === casoIdx);
         const correctasCaso = respuestasCaso.filter(r => r.correcta).length;
+        
+        let preguntasHTML = '';
+        caso.preguntas.forEach((preg, pregIdx) => {
+            const respuesta = respuestasCaso.find(r => r.pregunta === pregIdx);
+            const esCorrecta = respuesta && respuesta.correcta;
+            const noRespondida = !respuesta;
+            
+            preguntasHTML += `
+                <div class="resumen-pregunta-caso ${esCorrecta ? 'correcto' : 'incorrecto'}">
+                    <div class="pregunta-header-resumen">
+                        <span class="pregunta-num">P${pregIdx + 1}</span>
+                        <span class="pregunta-estado">${esCorrecta ? '✅' : noRespondida ? '⏰' : '❌'}</span>
+                    </div>
+                    <p class="pregunta-texto-resumen">${preg.pregunta}</p>
+                    <p class="respuesta-correcta-resumen"><strong>Correcta:</strong> ${preg.opciones[preg.correcta]}</p>
+                    ${!esCorrecta && respuesta ? `<p class="tu-respuesta-resumen"><strong>Tu respuesta:</strong> ${preg.opciones[respuesta.seleccionada]}</p>` : ''}
+                    ${preg.explicacion ? `<p class="explicacion-resumen">💡 ${preg.explicacion}</p>` : ''}
+                </div>
+            `;
+        });
+        
         resumenCasos += `
-            <div class="resumen-caso-item">
-                <span class="caso-nombre">${caso.titulo}</span>
-                <span class="caso-resultado ${correctasCaso === caso.preguntas.length ? 'perfecto' : correctasCaso > 0 ? 'parcial' : 'fallido'}">
-                    ${correctasCaso}/${caso.preguntas.length}
-                </span>
+            <div class="resumen-caso-completo">
+                <div class="resumen-caso-header">
+                    <span class="caso-nombre">${caso.titulo}</span>
+                    <span class="caso-resultado ${correctasCaso === caso.preguntas.length ? 'perfecto' : correctasCaso > 0 ? 'parcial' : 'fallido'}">
+                        ${correctasCaso}/${caso.preguntas.length}
+                    </span>
+                </div>
+                <div class="resumen-preguntas-caso">
+                    ${preguntasHTML}
+                </div>
             </div>
         `;
     });
@@ -4856,20 +4941,55 @@ function cambiarTabAdmin(tabName) {
     document.querySelectorAll('.contenido-tab-admin').forEach(c => c.classList.remove('activo'));
     
     if (tabName === 'modulos') document.getElementById('tabModulos').classList.add('activo');
-    if (tabName === 'evaluaciones') document.getElementById('tabEvaluaciones').classList.add('activo');
+    if (tabName === 'evaluaciones') {
+        document.getElementById('tabEvaluaciones').classList.add('activo');
+        // Cargar la evaluación si hay un módulo seleccionado
+        const selector = document.getElementById('selectorModuloEval');
+        if (selector && selector.value) {
+            cargarEditorEvaluacion();
+        }
+    }
     if (tabName === 'insignias') document.getElementById('tabInsignias').classList.add('activo');
     if (tabName === 'exportar') document.getElementById('tabExportar').classList.add('activo');
     if (tabName === 'ayuda') document.getElementById('tabAyuda').classList.add('activo');
+}
+
+// Helper para normalizar claves de objetos (convertir claves numéricas a strings)
+function normalizarClaves(obj) {
+    if (!obj) return {};
+    const normalizado = {};
+    for (const key of Object.keys(obj)) {
+        normalizado[String(key)] = obj[key];
+    }
+    return normalizado;
+}
+
+// Helper para obtener evaluación (maneja claves numéricas y string)
+function obtenerEvaluacionAdmin(moduloId) {
+    const id = String(moduloId);
+    if (!estadoAdmin.evaluacionesEditadas) return null;
+    return estadoAdmin.evaluacionesEditadas[id] || estadoAdmin.evaluacionesEditadas[moduloId];
+}
+
+// Helper para establecer evaluación (siempre usa string)
+function establecerEvaluacionAdmin(moduloId, evaluacion) {
+    estadoAdmin.evaluacionesEditadas[String(moduloId)] = evaluacion;
 }
 
 function cargarDatosAdmin() {
     // Cargar desde localStorage si existe, sino desde las variables globales
     const datosGuardados = localStorage.getItem('adminContentData');
     
+    // Siempre empezar con los datos originales del JSON
+    const modulosBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_TEORICO)));
+    const evaluacionesBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_EVALUACION)));
+    
     if (datosGuardados) {
         const datos = JSON.parse(datosGuardados);
-        estadoAdmin.modulosEditados = datos.modulos || CONTENIDO_TEORICO;
-        estadoAdmin.evaluacionesEditadas = datos.evaluaciones || CONTENIDO_EVALUACION;
+        
+        // Merge: datos guardados sobrescriben los originales, pero no eliminan lo que falta
+        estadoAdmin.modulosEditados = { ...modulosBase, ...normalizarClaves(datos.modulos || {}) };
+        estadoAdmin.evaluacionesEditadas = { ...evaluacionesBase, ...normalizarClaves(datos.evaluaciones || {}) };
         
         // Cargar estructura de módulos si existe
         if (datos.listaModulos && datos.listaModulos.length > 0) {
@@ -4880,8 +5000,8 @@ function cargarDatosAdmin() {
         CONTENIDO_TEORICO = { ...estadoAdmin.modulosEditados };
         CONTENIDO_EVALUACION = { ...estadoAdmin.evaluacionesEditadas };
     } else {
-        estadoAdmin.modulosEditados = JSON.parse(JSON.stringify(CONTENIDO_TEORICO));
-        estadoAdmin.evaluacionesEditadas = JSON.parse(JSON.stringify(CONTENIDO_EVALUACION));
+        estadoAdmin.modulosEditados = modulosBase;
+        estadoAdmin.evaluacionesEditadas = evaluacionesBase;
     }
     
     renderizarListaModulosAdmin();
@@ -4915,12 +5035,19 @@ function renderizarListaModulosAdmin() {
     const lista = document.getElementById('listaModulosAdmin');
     lista.innerHTML = '';
     
+    const totalModulos = MODULOS.length;
+    
     MODULOS.forEach((modulo, index) => {
         const div = document.createElement('div');
         div.className = 'item-modulo-admin';
         
         const contenidoModulo = estadoAdmin.modulosEditados[modulo.id] || '';
         const cantidadSecciones = contenidoModulo ? dividirEnSecciones(contenidoModulo).length : 0;
+        
+        // El módulo 0 (Bienvenida) no se puede mover ni eliminar
+        const esBienvenida = modulo.id === 0;
+        const puedeSubir = index > 1; // No puede subir si es el primero después de Bienvenida
+        const puedeBajar = index < totalModulos - 1 && index > 0; // No puede bajar si es el último o es Bienvenida
         
         div.innerHTML = `
             <div class="info-modulo-admin">
@@ -4931,14 +5058,103 @@ function renderizarListaModulosAdmin() {
                 </div>
             </div>
             <div class="acciones-modulo-admin">
+                ${!esBienvenida ? `
+                    <div class="botones-orden-modulo">
+                        <button class="btn-orden-modulo ${!puedeSubir ? 'disabled' : ''}" onclick="moverModuloArriba(${index})" title="Mover arriba" ${!puedeSubir ? 'disabled' : ''}>↑</button>
+                        <button class="btn-orden-modulo ${!puedeBajar ? 'disabled' : ''}" onclick="moverModuloAbajo(${index})" title="Mover abajo" ${!puedeBajar ? 'disabled' : ''}>↓</button>
+                    </div>
+                ` : ''}
                 <button class="boton-admin-pequeno boton-editar" onclick="editarModuloAdmin(${modulo.id})">✏️ Editar</button>
-                ${modulo.id !== 0 ? `<button class="boton-admin-pequeno boton-eliminar" onclick="eliminarModuloAdmin(${modulo.id})" title="Eliminar módulo">✕</button>` : ''}
+                ${!esBienvenida ? `
+                    <button class="boton-admin-pequeno boton-duplicar" onclick="duplicarModulo(${modulo.id})" title="Duplicar módulo">📋</button>
+                    <button class="boton-admin-pequeno boton-eliminar" onclick="eliminarModuloAdmin(${modulo.id})" title="Eliminar módulo">✕</button>
+                ` : ''}
             </div>
         `;
         
         lista.appendChild(div);
     });
 }
+
+function moverModuloArriba(index) {
+    if (index <= 1) return; // No mover Bienvenida ni el primero después de ella
+    
+    // Intercambiar posiciones en el array
+    const temp = MODULOS[index];
+    MODULOS[index] = MODULOS[index - 1];
+    MODULOS[index - 1] = temp;
+    
+    guardarDatosAdmin();
+    renderizarListaModulosAdmin();
+    actualizarSidebar();
+    mostrarNotificacion('↑ Módulo movido arriba');
+}
+
+function moverModuloAbajo(index) {
+    if (index === 0 || index >= MODULOS.length - 1) return;
+    
+    // Intercambiar posiciones en el array
+    const temp = MODULOS[index];
+    MODULOS[index] = MODULOS[index + 1];
+    MODULOS[index + 1] = temp;
+    
+    guardarDatosAdmin();
+    renderizarListaModulosAdmin();
+    actualizarSidebar();
+    mostrarNotificacion('↓ Módulo movido abajo');
+}
+
+function duplicarModulo(moduloId) {
+    const moduloOriginal = MODULOS.find(m => m.id === moduloId);
+    if (!moduloOriginal) return;
+    
+    // Generar nuevo ID
+    const nuevoId = Math.max(...MODULOS.map(m => m.id)) + 1;
+    
+    // Crear copia del módulo
+    const nuevoModulo = {
+        id: nuevoId,
+        numero: nuevoId,
+        titulo: `${moduloOriginal.titulo} (Copia)`,
+        icono: moduloOriginal.icono,
+        parte: moduloOriginal.parte,
+        clases: `Copia de ${moduloOriginal.clases}`,
+        insignia: moduloOriginal.insignia ? {
+            nombre: `${moduloOriginal.insignia.nombre} (Copia)`,
+            emoji: moduloOriginal.insignia.emoji,
+            descripcion: moduloOriginal.insignia.descripcion
+        } : null
+    };
+    
+    // Agregar a la lista de módulos
+    MODULOS.push(nuevoModulo);
+    
+    // Copiar contenido del módulo
+    const contenidoOriginal = estadoAdmin.modulosEditados[String(moduloId)] || estadoAdmin.modulosEditados[moduloId] || '';
+    estadoAdmin.modulosEditados[String(nuevoId)] = contenidoOriginal;
+    
+    // Copiar evaluación si existe
+    const evaluacionOriginal = obtenerEvaluacionAdmin(moduloId);
+    if (evaluacionOriginal) {
+        // Hacer copia profunda de la evaluación
+        const evaluacionCopia = JSON.parse(JSON.stringify(evaluacionOriginal));
+        evaluacionCopia.titulo = `${evaluacionCopia.titulo} (Copia)`;
+        estadoAdmin.evaluacionesEditadas[String(nuevoId)] = evaluacionCopia;
+    }
+    
+    guardarDatosAdmin();
+    renderizarListaModulosAdmin();
+    renderizarListaInsigniasAdmin();
+    cargarSelectorModulosEval();
+    actualizarSidebar();
+    
+    mostrarNotificacion(`📋 Módulo duplicado: ${nuevoModulo.titulo}`);
+}
+
+// Hacer funciones accesibles globalmente
+window.moverModuloArriba = moverModuloArriba;
+window.moverModuloAbajo = moverModuloAbajo;
+window.duplicarModulo = duplicarModulo;
 
 function agregarNuevoModulo() {
     const nuevoId = MODULOS.length;
@@ -5212,6 +5428,21 @@ function guardarEdicionModulo() {
     if (estadoAdmin.seccionesTemporales && estadoAdmin.seccionesTemporales.length > 0) {
         // Actualizar la sección actual que está en el editor
         estadoAdmin.seccionesTemporales[estadoAdmin.seccionActualEdicion] = editor.innerHTML;
+        
+        // Validar que ninguna sección tenga título vacío
+        for (let i = 0; i < estadoAdmin.seccionesTemporales.length; i++) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(estadoAdmin.seccionesTemporales[i], 'text/html');
+            const titulo = doc.querySelector('h2, h3');
+            const tituloTexto = titulo ? titulo.textContent.trim() : '';
+            
+            if (!tituloTexto) {
+                mostrarNotificacionError(`❌ La sección ${i + 1} no tiene título. Cada sección debe comenzar con un H2 o H3.`);
+                navegarSeccionEditor(i);
+                return;
+            }
+        }
+        
         // Unir todas las secciones
         nuevoContenido = estadoAdmin.seccionesTemporales.join('');
     } else {
@@ -5286,6 +5517,8 @@ function crearModalEditor() {
 
 function cargarSelectorModulosEval() {
     const selector = document.getElementById('selectorModuloEval');
+    const valorAnterior = selector.value; // Guardar valor anterior si existe
+    
     selector.innerHTML = '<option value="">-- Seleccione un módulo --</option>';
     
     MODULOS.forEach(modulo => {
@@ -5296,16 +5529,26 @@ function cargarSelectorModulosEval() {
             selector.appendChild(option);
         }
     });
+    
+    // Si había un valor anterior, restaurarlo y cargar la evaluación
+    if (valorAnterior) {
+        selector.value = valorAnterior;
+        cargarEditorEvaluacion();
+    }
 }
 
 function cargarEditorEvaluacion() {
-    const moduloId = parseInt(document.getElementById('selectorModuloEval').value);
-    if (!moduloId) {
+    const selector = document.getElementById('selectorModuloEval');
+    const valorSelector = selector ? selector.value : '';
+    const moduloId = parseInt(valorSelector);
+    
+    if (isNaN(moduloId)) {
         document.getElementById('editorEvaluacion').innerHTML = '<p class="texto-placeholder">👈 Selecciona un módulo para editar su evaluación</p>';
         return;
     }
     
-    const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
+    // Usar helper para obtener evaluación (maneja claves numéricas y string)
+    const evaluacion = obtenerEvaluacionAdmin(moduloId);
     const container = document.getElementById('editorEvaluacion');
     
     if (!evaluacion) {
@@ -5329,6 +5572,7 @@ function cargarEditorEvaluacion() {
 }
 
 function crearEvaluacion(moduloId, tipo) {
+    const id = String(moduloId); // Normalizar a string
     const plantillas = {
         'escape-room': {
             tipo: 'escape-room',
@@ -5367,7 +5611,7 @@ function crearEvaluacion(moduloId, tipo) {
         }
     };
     
-    estadoAdmin.evaluacionesEditadas[moduloId] = plantillas[tipo];
+    estadoAdmin.evaluacionesEditadas[id] = plantillas[tipo];
     guardarDatosAdmin();
     cargarEditorEvaluacion();
     mostrarNotificacion('✅ Evaluación creada');
@@ -5558,12 +5802,14 @@ function renderizarEditorCasos(moduloId, evaluacion) {
     `;
     
     evaluacion.casos.forEach((caso, index) => {
+        const situacionPreview = caso.situacion ? caso.situacion.substring(0, 100) : (caso.narrativa ? caso.narrativa.substring(0, 100) : 'Sin descripción');
+        const numPreguntas = caso.preguntas ? caso.preguntas.length : 0;
         html += `
             <div class="item-eval-card-preview">
                 <div class="info-item-eval">
-                    <h5>📋 ${caso.titulo}</h5>
-                    <p>${caso.situacion.substring(0, 100)}...</p>
-                    <small>${caso.preguntas.length} pregunta${caso.preguntas.length !== 1 ? 's' : ''}</small>
+                    <h5>📋 ${caso.titulo || 'Caso sin título'}</h5>
+                    <p>${situacionPreview}...</p>
+                    <small>${numPreguntas} pregunta${numPreguntas !== 1 ? 's' : ''}</small>
                 </div>
                 <div class="acciones-item-eval">
                     <button class="boton-admin-pequeno boton-eliminar" onclick="eliminarCasoPractico(${moduloId}, ${index})">🗑️</button>
@@ -5667,7 +5913,7 @@ function agregarCasoPractico(moduloId) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.casos.push({
         titulo: "Nuevo caso",
-        situacion: "Descripción del caso...",
+        narrativa: "Descripción del caso...",
         preguntas: []
     });
     cargarEditorEvaluacion();
@@ -5766,13 +6012,27 @@ function guardarEdicionInsignia(moduloId) {
     
     guardarDatosAdmin();
     renderizarListaInsigniasAdmin();
-    cerrarEditorInsignia();
-    mostrarNotificacion('✅ Insignia actualizada');
+    
+    // Volver al editor de módulo si estábamos editando uno
+    if (estadoAdmin.moduloEnEdicion !== null) {
+        editarModuloAdmin(estadoAdmin.moduloEnEdicion);
+        mostrarNotificacion('✅ Insignia actualizada. Volviendo al editor de módulo');
+    } else {
+        const modal = document.getElementById('modalEditorAdmin');
+        if (modal) modal.remove();
+        mostrarNotificacion('✅ Insignia actualizada');
+    }
 }
 
 function cerrarEditorInsignia() {
-    const modal = document.getElementById('modalEditorAdmin');
-    if (modal) modal.remove();
+    // Si hay un módulo en edición, volver a él
+    if (estadoAdmin.moduloEnEdicion !== null) {
+        editarModuloAdmin(estadoAdmin.moduloEnEdicion);
+        mostrarNotificacionInfo('↩️ Volviendo al editor de módulo');
+    } else {
+        const modal = document.getElementById('modalEditorAdmin');
+        if (modal) modal.remove();
+    }
 }
 
 // ===== EDITOR VISUAL DE CONTENIDO =====
@@ -6086,8 +6346,20 @@ const ELEMENTOS_GALERIA = [
             {
                 id: 'concepto-box',
                 nombre: 'Caja de Concepto',
-                descripcion: 'Definición con borde azul',
-                html: `<div class="concepto-box"><h4>Nombre del Concepto</h4><p>Definición detallada del concepto...</p></div>`
+                descripcion: 'Definición con borde y icono de diamante',
+                html: `<div class="concepto-box"><h4>🔷 Nombre del Concepto</h4><p>Es la <strong>definición principal</strong> del concepto. Descripción detallada de qué significa y cómo se aplica.</p><p><strong>En otras palabras:</strong> Una explicación alternativa más simple.</p></div>`
+            },
+            {
+                id: 'concepto-box-con-ejemplo',
+                nombre: 'Concepto con Ejemplo',
+                descripcion: 'Concepto con caja de ejemplo anidada',
+                html: `<div class="concepto-box"><h4>🔷 Nombre del Concepto</h4><p>Es la <strong>definición principal</strong> del concepto con todos sus atributos y características.</p><p><strong>Importante:</strong> Punto clave a recordar sobre este concepto.</p><div class="ejemplo-box"><p><strong>Ejemplo:</strong> Un caso práctico que ilustra cómo se aplica este concepto en situaciones reales.</p></div></div>`
+            },
+            {
+                id: 'concepto-box-con-lista-ejemplos',
+                nombre: 'Concepto con Lista de Ejemplos',
+                descripcion: 'Concepto con ejemplos en lista',
+                html: `<div class="concepto-box"><h4>🔷 Nombre del Concepto</h4><p>Definición del concepto explicada de manera clara y concisa.</p><div class="ejemplo-box"><h5>📍 Ejemplos:</h5><ul><li><strong>Ejemplo 1:</strong> Descripción del primer ejemplo práctico</li><li><strong>Ejemplo 2:</strong> Descripción del segundo ejemplo práctico</li></ul></div></div>`
             },
             {
                 id: 'propiedad-box',
@@ -6128,8 +6400,14 @@ const ELEMENTOS_GALERIA = [
             {
                 id: 'ejemplo-box',
                 nombre: 'Ejemplo Simple',
-                descripcion: 'Ejemplo con fondo verde',
-                html: `<div class="ejemplo-box"><p><strong>Ejemplo:</strong> Descripción del ejemplo práctico...</p></div>`
+                descripcion: 'Ejemplo con fondo celeste',
+                html: `<div class="ejemplo-box"><p><strong>Ejemplo:</strong> Descripción del ejemplo práctico aplicado al contexto del concepto explicado.</p></div>`
+            },
+            {
+                id: 'ejemplo-box-con-titulo',
+                nombre: 'Ejemplo con Título',
+                descripcion: 'Ejemplo con encabezado destacado',
+                html: `<div class="ejemplo-box"><h5>📍 Ejemplos de Aplicación</h5><ul><li><strong>Caso 1:</strong> Descripción del primer caso práctico</li><li><strong>Caso 2:</strong> Descripción del segundo caso práctico</li></ul></div>`
             },
             {
                 id: 'ejemplo-practico',
@@ -6445,6 +6723,8 @@ function actualizarVistaPreviewSecciones() {
     }
     
     listaSecciones.innerHTML = '';
+    const totalSecciones = secciones.length;
+    
     secciones.forEach((seccionHTML, index) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(seccionHTML, 'text/html');
@@ -6455,17 +6735,151 @@ function actualizarVistaPreviewSecciones() {
         
         const div = document.createElement('div');
         div.className = `item-seccion-navegable ${estadoAdmin.seccionActualEdicion === index ? 'activa' : ''}`;
-        div.onclick = () => navegarSeccionEditor(index);
         
         div.innerHTML = `
-            <span class="icono-seccion-preview">${icono}</span>
-            <span class="texto-seccion-preview ${nivel}">${tituloTexto}</span>
-            <span class="numero-seccion-badge">${index + 1}</span>
+            <div class="seccion-info" onclick="navegarSeccionEditor(${index})">
+                <span class="icono-seccion-preview">${icono}</span>
+                <span class="texto-seccion-preview ${nivel}">${tituloTexto}</span>
+            </div>
+            <div class="seccion-acciones">
+                <span class="numero-seccion-badge">${index + 1}</span>
+                <button class="btn-seccion-mover ${index === 0 ? 'disabled' : ''}" onclick="moverSeccionArriba(${index}, event)" title="Mover arriba" ${index === 0 ? 'disabled' : ''}>↑</button>
+                <button class="btn-seccion-mover ${index === totalSecciones - 1 ? 'disabled' : ''}" onclick="moverSeccionAbajo(${index}, event)" title="Mover abajo" ${index === totalSecciones - 1 ? 'disabled' : ''}>↓</button>
+                <button class="btn-seccion-duplicar" onclick="duplicarSeccion(${index}, event)" title="Duplicar sección">📋</button>
+                <button class="btn-seccion-eliminar" onclick="eliminarSeccion(${index}, event)" title="Eliminar sección">✕</button>
+            </div>
         `;
         
         listaSecciones.appendChild(div);
     });
 }
+
+function moverSeccionArriba(index, event) {
+    event.stopPropagation();
+    if (index <= 0 || !estadoAdmin.seccionesTemporales) return;
+    
+    // Guardar contenido actual del editor
+    const editor = document.getElementById('editorContenidoVisual');
+    if (editor && estadoAdmin.seccionActualEdicion !== null) {
+        estadoAdmin.seccionesTemporales[estadoAdmin.seccionActualEdicion] = editor.innerHTML;
+    }
+    
+    // Intercambiar secciones
+    const temp = estadoAdmin.seccionesTemporales[index];
+    estadoAdmin.seccionesTemporales[index] = estadoAdmin.seccionesTemporales[index - 1];
+    estadoAdmin.seccionesTemporales[index - 1] = temp;
+    
+    // Actualizar índice de sección actual si es necesario
+    if (estadoAdmin.seccionActualEdicion === index) {
+        estadoAdmin.seccionActualEdicion = index - 1;
+    } else if (estadoAdmin.seccionActualEdicion === index - 1) {
+        estadoAdmin.seccionActualEdicion = index;
+    }
+    
+    // Recargar vista
+    navegarSeccionEditor(estadoAdmin.seccionActualEdicion);
+    mostrarNotificacion('↑ Sección movida arriba');
+}
+
+function moverSeccionAbajo(index, event) {
+    event.stopPropagation();
+    if (!estadoAdmin.seccionesTemporales || index >= estadoAdmin.seccionesTemporales.length - 1) return;
+    
+    // Guardar contenido actual del editor
+    const editor = document.getElementById('editorContenidoVisual');
+    if (editor && estadoAdmin.seccionActualEdicion !== null) {
+        estadoAdmin.seccionesTemporales[estadoAdmin.seccionActualEdicion] = editor.innerHTML;
+    }
+    
+    // Intercambiar secciones
+    const temp = estadoAdmin.seccionesTemporales[index];
+    estadoAdmin.seccionesTemporales[index] = estadoAdmin.seccionesTemporales[index + 1];
+    estadoAdmin.seccionesTemporales[index + 1] = temp;
+    
+    // Actualizar índice de sección actual si es necesario
+    if (estadoAdmin.seccionActualEdicion === index) {
+        estadoAdmin.seccionActualEdicion = index + 1;
+    } else if (estadoAdmin.seccionActualEdicion === index + 1) {
+        estadoAdmin.seccionActualEdicion = index;
+    }
+    
+    // Recargar vista
+    navegarSeccionEditor(estadoAdmin.seccionActualEdicion);
+    mostrarNotificacion('↓ Sección movida abajo');
+}
+
+function eliminarSeccion(index, event) {
+    event.stopPropagation();
+    if (!estadoAdmin.seccionesTemporales || estadoAdmin.seccionesTemporales.length <= 1) {
+        mostrarNotificacionError('❌ No puedes eliminar la única sección del módulo');
+        return;
+    }
+    
+    // Obtener título de la sección para el mensaje de confirmación
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(estadoAdmin.seccionesTemporales[index], 'text/html');
+    const titulo = doc.querySelector('h2, h3');
+    const tituloTexto = titulo ? titulo.textContent : `Sección ${index + 1}`;
+    
+    mostrarModalConfirmacion(
+        `¿Eliminar "${tituloTexto}"? Esta acción no se puede deshacer.`,
+        () => {
+            // Eliminar la sección
+            estadoAdmin.seccionesTemporales.splice(index, 1);
+            
+            // Ajustar índice de sección actual
+            if (estadoAdmin.seccionActualEdicion >= estadoAdmin.seccionesTemporales.length) {
+                estadoAdmin.seccionActualEdicion = estadoAdmin.seccionesTemporales.length - 1;
+            } else if (estadoAdmin.seccionActualEdicion > index) {
+                estadoAdmin.seccionActualEdicion--;
+            }
+            
+            // Recargar vista
+            navegarSeccionEditor(estadoAdmin.seccionActualEdicion);
+            mostrarNotificacion('🗑️ Sección eliminada');
+        }
+    );
+}
+
+function duplicarSeccion(index, event) {
+    event.stopPropagation();
+    if (!estadoAdmin.seccionesTemporales) return;
+    
+    // Guardar contenido actual del editor
+    const editor = document.getElementById('editorContenidoVisual');
+    if (editor && estadoAdmin.seccionActualEdicion !== null) {
+        estadoAdmin.seccionesTemporales[estadoAdmin.seccionActualEdicion] = editor.innerHTML;
+    }
+    
+    // Obtener título de la sección para el mensaje
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(estadoAdmin.seccionesTemporales[index], 'text/html');
+    const titulo = doc.querySelector('h2, h3');
+    
+    // Crear copia del contenido
+    let contenidoCopia = estadoAdmin.seccionesTemporales[index];
+    
+    // Modificar el título de la copia para indicar que es una copia
+    if (titulo) {
+        const tituloOriginal = titulo.textContent;
+        const nuevoTitulo = `${tituloOriginal} (Copia)`;
+        contenidoCopia = contenidoCopia.replace(tituloOriginal, nuevoTitulo);
+    }
+    
+    // Insertar la copia después de la sección original
+    estadoAdmin.seccionesTemporales.splice(index + 1, 0, contenidoCopia);
+    
+    // Navegar a la nueva sección
+    navegarSeccionEditor(index + 1);
+    
+    mostrarNotificacion('📋 Sección duplicada');
+}
+
+// Hacer funciones de sección accesibles globalmente
+window.moverSeccionArriba = moverSeccionArriba;
+window.moverSeccionAbajo = moverSeccionAbajo;
+window.eliminarSeccion = eliminarSeccion;
+window.duplicarSeccion = duplicarSeccion;
 
 function navegarSeccionEditor(index) {
     const editor = document.getElementById('editorContenidoVisual');
@@ -6840,6 +7254,11 @@ function renderizarEditorPasapalabraCompleto(moduloId, evaluacion) {
                             </div>
                         `).join('')}
                     </div>
+                    
+                    <div class="campo-editor">
+                        <label>💡 Explicación (se muestra al finalizar):</label>
+                        <textarea onchange="actualizarLetra(${moduloId}, ${index}, 'explicacion', this.value)" class="textarea-admin-pequeno" rows="2" placeholder="Explica por qué esta es la respuesta correcta...">${letra.explicacion || ''}</textarea>
+                    </div>
                 </div>
             </div>
         `;
@@ -6865,13 +7284,14 @@ function agregarLetraPasapalabraCompleta(moduloId) {
     const letra = prompt('Ingrese la letra (A-Z):');
     if (!letra || letra.length !== 1) return;
     
-    const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
+    const evaluacion = obtenerEvaluacionAdmin(moduloId);
     evaluacion.letras.push({
         letra: letra.toUpperCase(),
         definicion: "Nueva definición...",
         opciones: ["Opción 1", "Opción 2", "Opción 3"],
         correcta: 0,
-        tipo: "empieza"
+        tipo: "empieza",
+        explicacion: ""
     });
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('🔤 Letra agregada');
@@ -6931,6 +7351,11 @@ function renderizarEditorQuizCompleto(moduloId, evaluacion) {
                             </div>
                         `).join('')}
                     </div>
+                    
+                    <div class="campo-editor">
+                        <label>💡 Explicación (se muestra al finalizar):</label>
+                        <textarea onchange="actualizarPreguntaQuiz(${moduloId}, ${index}, 'explicacion', this.value)" class="textarea-admin-pequeno" rows="2" placeholder="Explica por qué esta es la respuesta correcta...">${preg.explicacion || ''}</textarea>
+                    </div>
                 </div>
             </div>
         `;
@@ -6953,13 +7378,14 @@ function actualizarOpcionQuiz(moduloId, pregIndex, opIndex, valor) {
 }
 
 function agregarPreguntaQuizCompleta(moduloId) {
-    const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
+    const evaluacion = obtenerEvaluacionAdmin(moduloId);
     evaluacion.preguntas.push({
         pregunta: "Nueva pregunta",
         opciones: ["Opción A", "Opción B", "Opción C", "Opción D"],
         correcta: 0,
         tiempo: 15,
-        puntos: 100
+        puntos: 100,
+        explicacion: ""
     });
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('❓ Pregunta agregada');
@@ -7093,8 +7519,8 @@ function renderizarEditorCasosCompleto(moduloId, evaluacion) {
                     </div>
                     
                     <div class="campo-editor">
-                        <label>Situación:</label>
-                        <textarea onchange="actualizarCaso(${moduloId}, ${casoIndex}, 'situacion', this.value)" class="textarea-admin-mediana" rows="4">${caso.situacion}</textarea>
+                        <label>Narrativa / Situación:</label>
+                        <textarea onchange="actualizarCaso(${moduloId}, ${casoIndex}, 'narrativa', this.value)" class="textarea-admin-mediana" rows="4">${caso.narrativa || caso.situacion || ''}</textarea>
                     </div>
                     
                     <div class="preguntas-caso-editor">
@@ -7122,6 +7548,11 @@ function renderizarEditorCasosCompleto(moduloId, evaluacion) {
                                             <input type="text" value="${op}" onchange="actualizarOpcionCaso(${moduloId}, ${casoIndex}, ${pregIndex}, ${opIndex}, this.value)" class="input-admin input-opcion">
                                         </div>
                                     `).join('')}
+                                </div>
+                                
+                                <div class="campo-editor">
+                                    <label>💡 Explicación:</label>
+                                    <textarea onchange="actualizarPreguntaCaso(${moduloId}, ${casoIndex}, ${pregIndex}, 'explicacion', this.value)" class="textarea-admin-pequeno" rows="2" placeholder="Explica por qué esta es la respuesta correcta...">${preg.explicacion || ''}</textarea>
                                 </div>
                             </div>
                         `).join('')}
@@ -7154,10 +7585,10 @@ function actualizarOpcionCaso(moduloId, casoIndex, pregIndex, opIndex, valor) {
 }
 
 function agregarCasoPracticoCompleto(moduloId) {
-    const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
+    const evaluacion = obtenerEvaluacionAdmin(moduloId);
     evaluacion.casos.push({
         titulo: `Caso ${evaluacion.casos.length + 1}`,
-        situacion: "Descripción de la situación del caso...",
+        narrativa: "Descripción de la situación del caso...",
         preguntas: []
     });
     actualizarContenidoEvaluacion(moduloId);
@@ -7174,11 +7605,12 @@ function eliminarCasoPracticoCompleto(moduloId, casoIndex) {
 }
 
 function agregarPreguntaCaso(moduloId, casoIndex) {
-    const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
+    const evaluacion = obtenerEvaluacionAdmin(moduloId);
     evaluacion.casos[casoIndex].preguntas.push({
         pregunta: "Nueva pregunta",
         opciones: ["Opción A", "Opción B", "Opción C", "Opción D"],
-        correcta: 0
+        correcta: 0,
+        explicacion: ""
     });
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('❓ Pregunta agregada');
@@ -7206,13 +7638,27 @@ function guardarEvaluacionCompleta(moduloId) {
     if (aprobacion) evaluacion.aprobacion = parseInt(aprobacion.value);
     
     guardarDatosAdmin();
-    cerrarEditorEvaluacion();
-    mostrarNotificacion('✅ Evaluación guardada exitosamente');
+    
+    // Volver al editor de módulo si estábamos editando uno
+    if (estadoAdmin.moduloEnEdicion !== null) {
+        editarModuloAdmin(estadoAdmin.moduloEnEdicion);
+        mostrarNotificacion('✅ Evaluación guardada. Volviendo al editor de módulo');
+    } else {
+        const modal = document.getElementById('modalEditorAdmin');
+        if (modal) modal.remove();
+        mostrarNotificacion('✅ Evaluación guardada exitosamente');
+    }
 }
 
 function cerrarEditorEvaluacion() {
-    const modal = document.getElementById('modalEditorAdmin');
-    if (modal) modal.remove();
+    // Si hay un módulo en edición, volver a él
+    if (estadoAdmin.moduloEnEdicion !== null) {
+        editarModuloAdmin(estadoAdmin.moduloEnEdicion);
+        mostrarNotificacionInfo('↩️ Volviendo al editor de módulo');
+    } else {
+        const modal = document.getElementById('modalEditorAdmin');
+        if (modal) modal.remove();
+    }
 }
 
 function seleccionarEmojiModulo(emoji) {
@@ -7279,19 +7725,23 @@ window.addEventListener("DOMContentLoaded", async function() {
     const cargaExitosa = await cargarContenidoTeorico();
     
     if (cargaExitosa) {
-        // Verificar si hay datos editados guardados localmente y aplicarlos
+        // Guardar copias de los datos originales del JSON
+        const modulosOriginales = { ...CONTENIDO_TEORICO };
+        const evaluacionesOriginales = { ...CONTENIDO_EVALUACION };
+        
+        // Verificar si hay datos editados guardados localmente y hacer merge
         const datosGuardados = localStorage.getItem('adminContentData');
         if (datosGuardados) {
             const datos = JSON.parse(datosGuardados);
             
-            // Cargar contenido de módulos editados
+            // Merge: datos originales + datos editados (los editados sobrescriben)
             if (datos.modulos) {
-                CONTENIDO_TEORICO = { ...datos.modulos };
+                CONTENIDO_TEORICO = { ...modulosOriginales, ...datos.modulos };
             }
             
-            // Cargar evaluaciones editadas
+            // Merge: evaluaciones originales + evaluaciones editadas
             if (datos.evaluaciones) {
-                CONTENIDO_EVALUACION = { ...datos.evaluaciones };
+                CONTENIDO_EVALUACION = { ...evaluacionesOriginales, ...datos.evaluaciones };
             }
             
             // Cargar estructura de módulos (nuevos módulos agregados)
