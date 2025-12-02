@@ -276,4 +276,4 @@ Si tienes problemas con la plataforma:
 
 Este proyecto fue desarrollado con fines educativos para UADE.
 
-© 2025 - Prof. Marcelo Castro - UADE
+© 2025 - Desarrollado por Matias Sergio Sgherza Alumno 1146341 - UADE
