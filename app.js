@@ -404,13 +404,29 @@ function confirmarCambiarNombre() {
 // ===== GESTIÓN DE ESTADO Y localStorage =====
 
 function guardarEstado() {
-    localStorage.setItem("estadoTeoriaSistemas", JSON.stringify(estadoGlobal));
+    try {
+        localStorage.setItem("estadoTeoriaSistemas", JSON.stringify(estadoGlobal));
+        console.log('💾 Estado guardado:', {
+            modulosCompletados: estadoGlobal.modulosCompletados,
+            insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0
+        });
+    } catch (e) {
+        console.error('❌ Error guardando estado:', e);
+    }
 }
 
 function cargarEstado() {
+    console.log('🔄 Intentando cargar estado...');
     const estado = localStorage.getItem("estadoTeoriaSistemas");
+    console.log('📦 Estado en localStorage:', estado ? 'existe (' + estado.length + ' chars)' : 'NO EXISTE');
+    
     if (estado) {
         estadoGlobal = JSON.parse(estado);
+        console.log('✅ Estado cargado:', {
+            modulosCompletados: estadoGlobal.modulosCompletados,
+            insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0,
+            nombreUsuario: estadoGlobal.nombreUsuario
+        });
         // Asegurar que existan todas las propiedades necesarias
         if (!estadoGlobal.notasModulos) {
             estadoGlobal.notasModulos = {};
@@ -8620,6 +8636,13 @@ function realizarExportacionJSON() {
 
 // Inicializar la aplicación cuando el DOM esté listo y el contenido cargado
 window.addEventListener("DOMContentLoaded", async function() {
+    console.log('🚀 Iniciando aplicación...');
+    console.log('📊 localStorage disponible:', typeof localStorage !== 'undefined');
+    
+    // Verificar estado ANTES de cualquier carga
+    const estadoPrevio = localStorage.getItem("estadoTeoriaSistemas");
+    console.log('📋 Estado del usuario ANTES de inicializar:', estadoPrevio ? JSON.parse(estadoPrevio).modulosCompletados : 'NO HAY');
+    
     // Primero cargar el contenido teórico desde el JSON
     const cargaExitosa = await cargarContenidoTeorico();
     
@@ -8645,14 +8668,24 @@ window.addEventListener("DOMContentLoaded", async function() {
             
             // Cargar estructura de módulos (nuevos módulos agregados)
             if (datos.listaModulos && datos.listaModulos.length > 0) {
-                MODULOS = datos.listaModulos;
+                MODULOS = datos.listaModulos.map(m => ({
+                    ...m,
+                    estado: 'no-iniciado'  // Asegurar que cada módulo tenga estado
+                }));
                 console.log('✅ Estructura de módulos cargada desde localStorage');
             }
             
             console.log('✅ Contenido editado cargado desde localStorage');
         }
         
+        // Verificar estado DESPUÉS de cargar contenido pero ANTES de inicializarApp
+        const estadoDespues = localStorage.getItem("estadoTeoriaSistemas");
+        console.log('📋 Estado del usuario DESPUÉS de cargar contenido:', estadoDespues ? JSON.parse(estadoDespues).modulosCompletados : 'NO HAY');
+        
         // Luego inicializar la aplicación
         inicializarApp();
+        
+        // Verificar estado DESPUÉS de inicializar
+        console.log('📋 Estado final después de inicializar:', estadoGlobal.modulosCompletados);
     }
 });
