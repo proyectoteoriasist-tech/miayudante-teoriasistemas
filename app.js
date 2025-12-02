@@ -3495,7 +3495,7 @@ function renderizarQuizTiempo(moduloId, evaluacion) {
                 <div class="quiz-tiempo-reglas">
                     <h4>¿Cómo jugar?</h4>
                     <ul>
-                        <li>⏱️ Tienes <strong>${evaluacion.tiempoPorPregunta} segundos</strong> por pregunta</li>
+                        <li>⏱️ Tienes <strong>${evaluacion.tiempoPorPregunta || 15} segundos</strong> por pregunta</li>
                         <li>⚡ Respuestas rápidas = más puntos</li>
                         <li>❌ Si no respondes a tiempo, se pasa automáticamente</li>
                         <li>🎯 Necesitas ${evaluacion.aprobacion}% para aprobar</li>
@@ -3508,7 +3508,7 @@ function renderizarQuizTiempo(moduloId, evaluacion) {
                         <span class="info-label">Preguntas</span>
                     </div>
                     <div class="escape-info-item">
-                        <span class="info-numero">${evaluacion.tiempoPorPregunta}s</span>
+                        <span class="info-numero">${evaluacion.tiempoPorPregunta || 15}s</span>
                         <span class="info-label">Por pregunta</span>
                     </div>
                     <div class="escape-info-item">
@@ -4294,7 +4294,7 @@ function renderizarCasosPracticos(moduloId) {
                     <div class="info-item">✅ Aprobación: <strong>${evaluacion.aprobacion}%</strong></div>
                 </div>
                 
-                <p class="instrucciones-casos">${evaluacion.instrucciones}</p>
+                <p class="instrucciones-casos">${evaluacion.instrucciones || 'Lee cada caso con atención y responde las preguntas.'}</p>
                 
                 <div style="margin-top: 2rem; text-align: center;">
                     <button style="display: inline-block; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 12px; cursor: pointer;" onclick="iniciarCasosPracticos('${moduloId}')">
@@ -5802,6 +5802,7 @@ function crearEvaluacion(moduloId, tipo) {
             titulo: 'Nuevo Quiz con Tiempo',
             descripcion: 'Preguntas cronometradas',
             aprobacion: 60,
+            tiempoPorPregunta: 15,  // Segundos por pregunta
             preguntas: []
         },
         'conectar': {
@@ -5815,6 +5816,7 @@ function crearEvaluacion(moduloId, tipo) {
             tipo: 'casos-practicos',
             titulo: 'Casos Prácticos',
             descripcion: 'Análisis de situaciones',
+            instrucciones: 'Lee cada caso con atención y responde las preguntas basándote en los conceptos estudiados.',
             aprobacion: 60,
             casos: []
         }
