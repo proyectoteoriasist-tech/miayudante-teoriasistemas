@@ -1134,7 +1134,7 @@ function actualizarVistaPrincipal() {
     vistaPrincipal.innerHTML = `
         <div class="encabezado-modulo">
             <div class="info-modulo">
-                <span class="numero-titulo">Módulo ${modulo.numero} de ${MODULOS.length}</span>
+                <span class="numero-titulo">Módulo ${modulo.numero} de ${MODULOS.filter(m => m.id !== 0).length}</span>
                 <h2>${modulo.icono} ${modulo.titulo}</h2>
             </div>
             ${completado ? `
