@@ -1654,7 +1654,7 @@ function inicializarEditorNotas(moduloId, contenidoInicial) {
     const editor = document.getElementById(`editor-notas-${moduloId}`);
     const inputFile = document.getElementById(`input-imagen-${moduloId}`);
     
-    if (!editor) return;
+    if (!editor || !inputFile) return;
     
     // Cargar contenido existente
     editor.innerHTML = contenidoInicial || '';
@@ -4816,8 +4816,87 @@ let estadoAdmin = {
     moduloEnEdicion: null,
     modoEdicionSeccion: true, // Siempre editar sección por sección
     seccionActualEdicion: 0,
-    seccionesTemporales: null
+    seccionesTemporales: null,
+    // Control de cambios pendientes
+    cambiosPendientesModulo: false,
+    cambiosPendientesEvaluacion: false,
+    cambiosPendientesInsignia: false,
+    // Datos originales para comparar/restaurar
+    datosOriginalesModulo: null,
+    datosOriginalesEvaluacion: null,
+    datosOriginalesInsignia: null,
+    insigniaEnEdicion: null
 };
+
+// Marcar que hay cambios pendientes en el módulo
+function marcarCambioModulo() {
+    estadoAdmin.cambiosPendientesModulo = true;
+    actualizarIndicadorCambios();
+}
+
+// Marcar que hay cambios pendientes en la evaluación
+function marcarCambioEvaluacion() {
+    estadoAdmin.cambiosPendientesEvaluacion = true;
+    actualizarIndicadorCambios();
+}
+
+// Marcar que hay cambios pendientes en la insignia
+function marcarCambioInsignia() {
+    estadoAdmin.cambiosPendientesInsignia = true;
+    actualizarIndicadorCambiosInsignia();
+}
+
+// Actualizar indicador visual de cambios pendientes en insignia
+function actualizarIndicadorCambiosInsignia() {
+    const btnGuardar = document.querySelector('.boton-admin.boton-guardar');
+    if (btnGuardar && estadoAdmin.cambiosPendientesInsignia) {
+        btnGuardar.classList.add('tiene-cambios');
+        if (!btnGuardar.textContent.includes('*')) {
+            btnGuardar.textContent = btnGuardar.textContent.replace('Guardar', 'Guardar *');
+        }
+    }
+}
+
+// Actualizar indicador visual de cambios pendientes
+function actualizarIndicadorCambios() {
+    const btnGuardarModulo = document.querySelector('.boton-guardar-grande');
+    if (btnGuardarModulo) {
+        if (estadoAdmin.cambiosPendientesModulo || estadoAdmin.cambiosPendientesEvaluacion) {
+            btnGuardarModulo.classList.add('tiene-cambios');
+            btnGuardarModulo.querySelector('.texto-btn').textContent = 'Guardar Cambios *';
+        } else {
+            btnGuardarModulo.classList.remove('tiene-cambios');
+            btnGuardarModulo.querySelector('.texto-btn').textContent = 'Guardar Cambios';
+        }
+    }
+}
+
+// Verificar si hay cambios pendientes
+function hayCambiosPendientes() {
+    return estadoAdmin.cambiosPendientesModulo || estadoAdmin.cambiosPendientesEvaluacion || estadoAdmin.cambiosPendientesInsignia;
+}
+
+// Resetear estado de cambios
+function resetearCambiosPendientes() {
+    estadoAdmin.cambiosPendientesModulo = false;
+    estadoAdmin.cambiosPendientesEvaluacion = false;
+    estadoAdmin.cambiosPendientesInsignia = false;
+    estadoAdmin.datosOriginalesModulo = null;
+    estadoAdmin.datosOriginalesEvaluacion = null;
+    estadoAdmin.datosOriginalesInsignia = null;
+    estadoAdmin.insigniaEnEdicion = null;
+}
+
+// Mostrar modal de confirmación para cambios sin guardar
+function confirmarDescartarCambios(callback) {
+    mostrarModalConfirmacion(
+        '⚠️ Tienes cambios sin guardar. ¿Deseas descartarlos?',
+        () => {
+            resetearCambiosPendientes();
+            callback();
+        }
+    );
+}
 
 // ===== FUNCIONES AUXILIARES PARA OBTENER CONTENIDO (EDITADO O ORIGINAL) =====
 
@@ -5230,7 +5309,7 @@ function editarModuloAdmin(moduloId) {
                         
                         <div class="campo-editor">
                             <label>Título del módulo:</label>
-                            <input type="text" id="tituloModulo" value="${modulo.titulo}" class="input-admin" placeholder="Ej: Unidad I: Introducción">
+                            <input type="text" id="tituloModulo" value="${modulo.titulo}" class="input-admin" placeholder="Ej: Unidad I: Introducción" oninput="marcarCambioModulo()">
                         </div>
                         
                         <div class="campo-editor">
@@ -5346,7 +5425,7 @@ function editarModuloAdmin(moduloId) {
                             1.
                         </button>
                         <span class="separador-toolbar"></span>
-                        <button class="btn-toolbar btn-espacio" onclick="insertarEstiloPredefinido('espacio')" title="Insertar Espacio entre Elementos" type="button">
+                        <button class="btn-toolbar" onclick="insertarEspacioAbajo()" title="Insertar Espacio" type="button">
                             ⬇️
                         </button>
                         <button class="btn-toolbar btn-imagen" onclick="abrirModalInsertarImagen()" title="Insertar Imagen" type="button">
@@ -5472,7 +5551,10 @@ function guardarEdicionModulo() {
     // Guardar y actualizar vistas
     guardarDatosAdmin();
     renderizarListaModulosAdmin();
-    cerrarEditorModulo();
+    
+    // Resetear cambios pendientes y cerrar
+    resetearCambiosPendientes();
+    cerrarEditorModulo(true); // Forzar cierre ya que los cambios fueron guardados
     mostrarNotificacion('✅ Módulo actualizado exitosamente');
 }
 
@@ -5498,12 +5580,18 @@ function ejecutarEliminacionModulo(moduloId) {
     }
 }
 
-function cerrarEditorModulo() {
+function cerrarEditorModulo(forzar = false) {
+    if (!forzar && hayCambiosPendientes()) {
+        confirmarDescartarCambios(() => cerrarEditorModulo(true));
+        return;
+    }
+    
     const modal = document.getElementById('modalEditorAdmin');
     if (modal) modal.remove();
     estadoAdmin.moduloEnEdicion = null;
     estadoAdmin.seccionesTemporales = null;
     estadoAdmin.seccionActualEdicion = 0;
+    resetearCambiosPendientes();
 }
 
 function crearModalEditor() {
@@ -5571,6 +5659,12 @@ function cargarEditorEvaluacion() {
         return;
     }
     
+    // Guardar datos originales para control de cambios (solo si NO estamos editando un módulo)
+    if (estadoAdmin.moduloEnEdicion === null) {
+        estadoAdmin.datosOriginalesEvaluacion = JSON.parse(JSON.stringify(evaluacion));
+        estadoAdmin.cambiosPendientesEvaluacion = false;
+    }
+    
     renderizarEditorEvaluacionSegunTipo(moduloId, evaluacion);
 }
 
@@ -5615,9 +5709,15 @@ function crearEvaluacion(moduloId, tipo) {
     };
     
     estadoAdmin.evaluacionesEditadas[id] = plantillas[tipo];
-    guardarDatosAdmin();
+    
+    // Guardar que es una evaluación nueva (para poder eliminarla si cancela)
+    if (estadoAdmin.moduloEnEdicion === null) {
+        estadoAdmin.datosOriginalesEvaluacion = 'SIN_EVALUACION';
+    }
+    marcarCambioEvaluacion();
+    
     cargarEditorEvaluacion();
-    mostrarNotificacion('✅ Evaluación creada');
+    mostrarNotificacion('📝 Evaluación creada (recuerda guardar los cambios)');
 }
 
 function renderizarEditorEvaluacionSegunTipo(moduloId, evaluacion) {
@@ -5639,17 +5739,17 @@ function renderizarEditorEvaluacionSegunTipo(moduloId, evaluacion) {
             <div class="form-eval-basico">
                 <div class="campo-editor">
                     <label>Título de la evaluación:</label>
-                    <input type="text" id="tituloEval" value="${evaluacion.titulo}" class="input-admin">
+                    <input type="text" id="tituloEval" value="${evaluacion.titulo}" class="input-admin" oninput="marcarCambioEvaluacion()">
                 </div>
                 
                 <div class="campo-editor">
                     <label>Descripción:</label>
-                    <input type="text" id="descripcionEval" value="${evaluacion.descripcion}" class="input-admin">
+                    <input type="text" id="descripcionEval" value="${evaluacion.descripcion}" class="input-admin" oninput="marcarCambioEvaluacion()">
                 </div>
                 
                 <div class="campo-editor">
                     <label>Porcentaje para aprobar (%):</label>
-                    <input type="number" id="aprobacionEval" value="${evaluacion.aprobacion}" class="input-admin" min="0" max="100">
+                    <input type="number" id="aprobacionEval" value="${evaluacion.aprobacion}" class="input-admin" min="0" max="100" oninput="marcarCambioEvaluacion()">
                 </div>
             </div>
             
@@ -5967,6 +6067,11 @@ function editarInsigniaAdmin(moduloId) {
     const modulo = MODULOS.find(m => m.id === moduloId);
     if (!modulo || !modulo.insignia) return;
     
+    // Guardar datos originales para poder restaurar si cancela
+    estadoAdmin.datosOriginalesInsignia = JSON.parse(JSON.stringify(modulo.insignia));
+    estadoAdmin.insigniaEnEdicion = moduloId;
+    estadoAdmin.cambiosPendientesInsignia = false;
+    
     // Usar el modal existente si hay uno, o crear uno nuevo
     let modal = document.getElementById('modalEditorAdmin');
     if (!modal) {
@@ -5984,17 +6089,17 @@ function editarInsigniaAdmin(moduloId) {
             <div class="form-editor">
                 <div class="campo-editor">
                     <label>Emoji:</label>
-                    <input type="text" id="emojiInsignia" value="${modulo.insignia.emoji}" class="input-admin" maxlength="2">
+                    <input type="text" id="emojiInsignia" value="${modulo.insignia.emoji}" class="input-admin" maxlength="2" oninput="marcarCambioInsignia()">
                 </div>
                 
                 <div class="campo-editor">
                     <label>Nombre:</label>
-                    <input type="text" id="nombreInsignia" value="${modulo.insignia.nombre}" class="input-admin">
+                    <input type="text" id="nombreInsignia" value="${modulo.insignia.nombre}" class="input-admin" oninput="marcarCambioInsignia()">
                 </div>
                 
                 <div class="campo-editor">
                     <label>Descripción:</label>
-                    <input type="text" id="descripcionInsignia" value="${modulo.insignia.descripcion}" class="input-admin">
+                    <input type="text" id="descripcionInsignia" value="${modulo.insignia.descripcion}" class="input-admin" oninput="marcarCambioInsignia()">
                 </div>
                 
                 <div class="acciones-editor">
@@ -6016,6 +6121,11 @@ function guardarEdicionInsignia(moduloId) {
     guardarDatosAdmin();
     renderizarListaInsigniasAdmin();
     
+    // Resetear cambios pendientes de insignia
+    estadoAdmin.cambiosPendientesInsignia = false;
+    estadoAdmin.datosOriginalesInsignia = null;
+    estadoAdmin.insigniaEnEdicion = null;
+    
     // Volver al editor de módulo si estábamos editando uno
     if (estadoAdmin.moduloEnEdicion !== null) {
         editarModuloAdmin(estadoAdmin.moduloEnEdicion);
@@ -6024,6 +6134,35 @@ function guardarEdicionInsignia(moduloId) {
         const modal = document.getElementById('modalEditorAdmin');
         if (modal) modal.remove();
         mostrarNotificacion('✅ Insignia actualizada');
+    }
+}
+
+function cerrarEditorInsignia(forzar = false) {
+    if (!forzar && estadoAdmin.cambiosPendientesInsignia) {
+        confirmarDescartarCambios(() => cerrarEditorInsignia(true));
+        return;
+    }
+    
+    // Restaurar datos originales si se descartaron cambios
+    if (estadoAdmin.datosOriginalesInsignia && estadoAdmin.insigniaEnEdicion !== null) {
+        const modulo = MODULOS.find(m => m.id === estadoAdmin.insigniaEnEdicion);
+        if (modulo && modulo.insignia) {
+            modulo.insignia = JSON.parse(JSON.stringify(estadoAdmin.datosOriginalesInsignia));
+        }
+    }
+    
+    // Resetear estado
+    estadoAdmin.cambiosPendientesInsignia = false;
+    estadoAdmin.datosOriginalesInsignia = null;
+    estadoAdmin.insigniaEnEdicion = null;
+    
+    // Volver al editor de módulo si estábamos editando uno
+    if (estadoAdmin.moduloEnEdicion !== null) {
+        editarModuloAdmin(estadoAdmin.moduloEnEdicion);
+        mostrarNotificacionInfo('↩️ Volviendo al editor de módulo');
+    } else {
+        const modal = document.getElementById('modalEditorAdmin');
+        if (modal) modal.remove();
     }
 }
 
@@ -6079,12 +6218,17 @@ function inicializarEditorVisual(moduloId) {
     
     // Auto-ocultar la ayuda después de 5 segundos
     setTimeout(() => {
-        cerrarAyudaEditor();
+        const ayuda = document.getElementById('ayudaEditorTemporal');
+        if (ayuda) {
+            ayuda.classList.add('desvaneciendo');
+            setTimeout(() => ayuda.remove(), 500);
+        }
     }, 5000);
     
     // Auto-actualizar preview mientras escribe
     let timeoutGuardado;
     editor.addEventListener('input', () => {
+        marcarCambioModulo(); // Marcar que hay cambios pendientes
         clearTimeout(timeoutGuardado);
         timeoutGuardado = setTimeout(() => {
             // Guardar la sección actual en temporales
@@ -6164,6 +6308,72 @@ function insertarElementoEditor(tipo) {
     editor.focus();
     actualizarVistaPreviewSecciones();
 }
+
+function insertarEspacioArriba() {
+    const editor = document.getElementById('editorContenidoVisual');
+    if (!editor) return;
+    
+    // Guardar selección antes de manipular
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+        editor.focus();
+        return;
+    }
+    
+    const range = selection.getRangeAt(0);
+    
+    // Crear el espacio
+    const espacio = document.createElement('p');
+    espacio.className = 'espacio-editable';
+    espacio.innerHTML = '<br>';
+    
+    // Insertar antes del punto actual usando insertNode
+    range.collapse(true); // Colapsar al inicio
+    range.insertNode(espacio);
+    
+    // Mover cursor después del espacio insertado
+    range.setStartAfter(espacio);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
+    editor.focus();
+    actualizarVistaPreviewSecciones();
+}
+window.insertarEspacioArriba = insertarEspacioArriba;
+
+function insertarEspacioAbajo() {
+    const editor = document.getElementById('editorContenidoVisual');
+    if (!editor) return;
+    
+    // Guardar selección antes de manipular
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+        editor.focus();
+        return;
+    }
+    
+    const range = selection.getRangeAt(0);
+    
+    // Crear el espacio
+    const espacio = document.createElement('p');
+    espacio.className = 'espacio-editable';
+    espacio.innerHTML = '<br>';
+    
+    // Insertar después del punto actual
+    range.collapse(false); // Colapsar al final
+    range.insertNode(espacio);
+    
+    // Mover cursor al espacio insertado
+    range.setStartAfter(espacio);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
+    editor.focus();
+    actualizarVistaPreviewSecciones();
+}
+window.insertarEspacioAbajo = insertarEspacioAbajo;
 
 function insertarEstiloPredefinido(tipo) {
     const editor = document.getElementById('editorContenidoVisual');
@@ -6299,7 +6509,7 @@ function insertarEstiloPredefinido(tipo) {
 
 // Configuración del repositorio para obtener imágenes dinámicamente
 const GITHUB_REPO = 'proyectoteoriasist-tech/miayudante-teoriasistemas';
-const GITHUB_IMAGES_PATH = 'imagenes';
+const GITHUB_IMAGES_PATH = 'images'; // Carpeta en GitHub (diferente a la local 'imagenes')
 const CACHE_KEY_IMAGENES = 'imagenesDisponibles';
 const CACHE_DURACION = 1000 * 60 * 30; // 30 minutos de caché
 
@@ -6382,32 +6592,35 @@ function renderizarGaleriaImagenes(imagenes) {
 }
 
 async function abrirModalInsertarImagen() {
+    // Verificar si ya existe
+    if (document.getElementById('modalInsertarImagen')) return;
+    
     // Crear modal con loading inicial
     const overlay = document.createElement('div');
-    overlay.className = 'overlay-galeria-elementos';
+    overlay.className = 'galeria-overlay-interno';
     overlay.id = 'modalInsertarImagen';
     overlay.onclick = (e) => {
         if (e.target === overlay) cerrarModalInsertarImagen();
     };
     
     overlay.innerHTML = `
-        <div class="galeria-elementos-modal" style="max-width: 800px;">
-            <button class="cerrar-galeria" onclick="cerrarModalInsertarImagen()">✕</button>
-            <h2>🖼️ Insertar Imagen</h2>
-            <p style="color: #666; margin-bottom: 1rem;">Selecciona una imagen de la carpeta <code>/imagenes</code> o escribe el nombre manualmente.</p>
+        <div class="galeria-modal" style="max-width: 800px; max-height: 85vh; overflow: hidden; padding: 2rem; position: relative;">
+            <button class="btn-cerrar-galeria" onclick="cerrarModalInsertarImagen()" style="background: #ef4444; position: absolute; top: 1rem; right: 1rem;">✕</button>
+            <h2 style="margin: 0 0 0.5rem 0; color: #1f2937;">🖼️ Insertar Imagen</h2>
+            <p style="color: #666; margin-bottom: 1rem; font-size: 0.95rem;">Selecciona una imagen de la carpeta <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">/imagenes</code> o escribe el nombre manualmente.</p>
             
-            <div class="campo-editor" style="margin-bottom: 1rem;">
+            <div style="margin-bottom: 1rem;">
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="inputNombreImagen" class="input-admin" 
                         placeholder="🔍 Buscar imagen por nombre..." 
-                        style="flex: 1; font-size: 1rem; padding: 0.75rem;">
-                    <button class="btn-admin btn-secundario" onclick="actualizarCacheImagenes()" title="Actualizar lista de imágenes" style="padding: 0.75rem;">
+                        style="flex: 1; font-size: 1rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px;">
+                    <button class="btn-admin btn-secundario" onclick="actualizarCacheImagenes()" title="Actualizar lista de imágenes" style="padding: 0.75rem 1rem; font-size: 1.1rem;">
                         🔄
                     </button>
                 </div>
             </div>
             
-            <div class="galeria-imagenes-container" style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: #fafafa;">
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: #fafafa;">
                 <div class="galeria-imagenes-grid" id="galeriaImagenesGrid">
                     <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
                         ⏳ Cargando imágenes...
@@ -6425,7 +6638,7 @@ async function abrirModalInsertarImagen() {
                 </div>
             </div>
             
-            <div class="galeria-footer" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
                 <button class="btn-admin btn-secundario" onclick="cerrarModalInsertarImagen()">Cancelar</button>
                 <button class="btn-admin btn-primario" onclick="confirmarInsertarImagen()" id="btnConfirmarImagen">
                     ✓ Insertar
@@ -6993,6 +7206,7 @@ function moverSeccionArriba(index, event) {
     const temp = estadoAdmin.seccionesTemporales[index];
     estadoAdmin.seccionesTemporales[index] = estadoAdmin.seccionesTemporales[index - 1];
     estadoAdmin.seccionesTemporales[index - 1] = temp;
+    marcarCambioModulo(); // Marcar cambio pendiente
     
     // Actualizar índice de sección actual si es necesario
     if (estadoAdmin.seccionActualEdicion === index) {
@@ -7020,6 +7234,7 @@ function moverSeccionAbajo(index, event) {
     const temp = estadoAdmin.seccionesTemporales[index];
     estadoAdmin.seccionesTemporales[index] = estadoAdmin.seccionesTemporales[index + 1];
     estadoAdmin.seccionesTemporales[index + 1] = temp;
+    marcarCambioModulo(); // Marcar cambio pendiente
     
     // Actualizar índice de sección actual si es necesario
     if (estadoAdmin.seccionActualEdicion === index) {
@@ -7051,6 +7266,7 @@ function eliminarSeccion(index, event) {
         () => {
             // Eliminar la sección
             estadoAdmin.seccionesTemporales.splice(index, 1);
+            marcarCambioModulo(); // Marcar cambio pendiente
             
             // Ajustar índice de sección actual
             if (estadoAdmin.seccionActualEdicion >= estadoAdmin.seccionesTemporales.length) {
@@ -7093,6 +7309,7 @@ function duplicarSeccion(index, event) {
     
     // Insertar la copia después de la sección original
     estadoAdmin.seccionesTemporales.splice(index + 1, 0, contenidoCopia);
+    marcarCambioModulo(); // Marcar cambio pendiente
     
     // Navegar a la nueva sección
     navegarSeccionEditor(index + 1);
@@ -7173,14 +7390,16 @@ function cambiarTipoEvaluacion(moduloId) {
     const tipo = document.getElementById('evaluacionVinculada').value;
     
     if (!tipo) {
-        // Sin evaluación
+        // Sin evaluación - marcar para eliminar al guardar
         delete estadoAdmin.evaluacionesEditadas[moduloId];
-        guardarDatosAdmin();
+        marcarCambioModulo(); // El cambio de evaluación vinculada es parte de editar módulo
+        mostrarNotificacion('📝 Evaluación eliminada (recuerda guardar los cambios)');
         return;
     }
     
     // Si no existe la evaluación, crearla
     if (!estadoAdmin.evaluacionesEditadas[moduloId] || estadoAdmin.evaluacionesEditadas[moduloId].tipo !== tipo) {
+        marcarCambioModulo(); // El cambio de evaluación vinculada es parte de editar módulo
         crearEvaluacion(moduloId, tipo);
     }
 }
@@ -7231,15 +7450,15 @@ function generarContenidoEditorEvaluacion(moduloId, evaluacion, modulo) {
                     <div class="form-inline-eval">
                         <div class="campo-editor">
                             <label>Título:</label>
-                            <input type="text" id="tituloEvalCompleta" value="${evaluacion.titulo}" class="input-admin">
+                            <input type="text" id="tituloEvalCompleta" value="${evaluacion.titulo}" class="input-admin" oninput="marcarCambioEvaluacion()">
                         </div>
                         <div class="campo-editor">
                             <label>Descripción:</label>
-                            <input type="text" id="descripcionEvalCompleta" value="${evaluacion.descripcion}" class="input-admin">
+                            <input type="text" id="descripcionEvalCompleta" value="${evaluacion.descripcion}" class="input-admin" oninput="marcarCambioEvaluacion()">
                         </div>
                         <div class="campo-editor campo-numero">
                             <label>% para aprobar:</label>
-                            <input type="number" id="aprobacionEvalCompleta" value="${evaluacion.aprobacion}" class="input-admin" min="0" max="100">
+                            <input type="number" id="aprobacionEvalCompleta" value="${evaluacion.aprobacion}" class="input-admin" min="0" max="100" oninput="marcarCambioEvaluacion()">
                         </div>
                     </div>
                 </div>
@@ -7254,6 +7473,14 @@ function generarContenidoEditorEvaluacion(moduloId, evaluacion, modulo) {
 
 function abrirEditorEvaluacionCompleto(moduloId, evaluacion) {
     const modulo = MODULOS.find(m => m.id === moduloId);
+    
+    // Guardar datos originales para poder restaurar si cancela
+    if (evaluacion) {
+        estadoAdmin.datosOriginalesEvaluacion = JSON.parse(JSON.stringify(evaluacion));
+    } else {
+        estadoAdmin.datosOriginalesEvaluacion = 'SIN_EVALUACION';
+    }
+    estadoAdmin.cambiosPendientesEvaluacion = false;
     
     const modal = crearModalEditor();
     modal.innerHTML = generarContenidoEditorEvaluacion(moduloId, evaluacion, modulo);
@@ -7280,6 +7507,7 @@ function renderizarEditorEvaluacionEspecifica(moduloId, evaluacion) {
 
 // Función para actualizar SOLO el contenido sin recrear el modal
 function actualizarContenidoEvaluacion(moduloId) {
+    marcarCambioEvaluacion();
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     const contenedor = document.getElementById('contenedorEditorEspecifico');
     if (contenedor && evaluacion) {
@@ -7864,6 +8092,10 @@ function guardarEvaluacionCompleta(moduloId) {
     
     guardarDatosAdmin();
     
+    // Resetear cambios pendientes de evaluación
+    estadoAdmin.cambiosPendientesEvaluacion = false;
+    estadoAdmin.datosOriginalesEvaluacion = null;
+    
     // Volver al editor de módulo si estábamos editando uno
     if (estadoAdmin.moduloEnEdicion !== null) {
         editarModuloAdmin(estadoAdmin.moduloEnEdicion);
@@ -7875,7 +8107,25 @@ function guardarEvaluacionCompleta(moduloId) {
     }
 }
 
-function cerrarEditorEvaluacion() {
+function cerrarEditorEvaluacion(forzar = false) {
+    if (!forzar && estadoAdmin.cambiosPendientesEvaluacion) {
+        confirmarDescartarCambios(() => cerrarEditorEvaluacion(true));
+        return;
+    }
+    
+    // Restaurar datos originales si se descartaron cambios
+    if (estadoAdmin.datosOriginalesEvaluacion && estadoAdmin.moduloEnEdicion !== null) {
+        const moduloId = String(estadoAdmin.moduloEnEdicion);
+        if (estadoAdmin.datosOriginalesEvaluacion === 'SIN_EVALUACION') {
+            delete estadoAdmin.evaluacionesEditadas[moduloId];
+        } else {
+            estadoAdmin.evaluacionesEditadas[moduloId] = JSON.parse(JSON.stringify(estadoAdmin.datosOriginalesEvaluacion));
+        }
+    }
+    
+    estadoAdmin.cambiosPendientesEvaluacion = false;
+    estadoAdmin.datosOriginalesEvaluacion = null;
+    
     // Si hay un módulo en edición, volver a él
     if (estadoAdmin.moduloEnEdicion !== null) {
         editarModuloAdmin(estadoAdmin.moduloEnEdicion);
@@ -7888,6 +8138,7 @@ function cerrarEditorEvaluacion() {
 
 function seleccionarEmojiModulo(emoji) {
     document.getElementById('iconoModulo').value = emoji;
+    marcarCambioModulo();
 }
 
 function agregarNuevaSeccion() {
@@ -7914,6 +8165,7 @@ function agregarNuevaSeccion() {
         </ul>
     `;
     estadoAdmin.seccionesTemporales.push(nuevaSeccion);
+    marcarCambioModulo(); // Marcar cambio pendiente
     
     // Navegar a la nueva sección
     navegarSeccionEditor(estadoAdmin.seccionesTemporales.length - 1);
@@ -7924,6 +8176,19 @@ function agregarNuevaSeccion() {
 // ===== EXPORTAR / IMPORTAR JSON =====
 
 function exportarJSON() {
+    // Verificar si hay cambios pendientes sin guardar
+    if (hayCambiosPendientes()) {
+        mostrarModalConfirmacion(
+            '⚠️ Tienes cambios sin guardar en el editor. El JSON exportado NO incluirá estos cambios. ¿Deseas continuar?',
+            () => realizarExportacionJSON()
+        );
+        return;
+    }
+    
+    realizarExportacionJSON();
+}
+
+function realizarExportacionJSON() {
     const dataExport = {
         modulos: estadoAdmin.modulosEditados,
         evaluaciones: estadoAdmin.evaluacionesEditadas

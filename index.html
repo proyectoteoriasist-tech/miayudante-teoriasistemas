@@ -381,8 +381,15 @@
                                         <ul>
                                             <li>Las imágenes (solo referencias a nombres de archivo)</li>
                                             <li>Progreso de los estudiantes</li>
+                                            <li>Cambios no guardados en editores abiertos</li>
                                         </ul>
                                     </div>
+                                </div>
+                                
+                                <div class="nota-guardado-exportar">
+                                    <strong>💡 Importante sobre el guardado:</strong>
+                                    <p>El JSON exportado contiene <strong>únicamente los cambios guardados</strong>. Si tienes un editor abierto (módulo, evaluación o insignia) con cambios sin guardar, esos cambios <strong>NO se incluirán</strong> en la exportación.</p>
+                                    <p style="margin-top: 0.5rem;"><strong>Antes de exportar:</strong> Asegúrate de presionar <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px;">💾 Guardar</span> en cualquier editor que tengas abierto.</p>
                                 </div>
                                 
                                 <button id="btnExportarJSON" class="boton-admin boton-exportar-grande">📥 Exportar JSON</button>
@@ -505,7 +512,7 @@
                                 <div class="grid-imagenes">
                                     <div class="info-imagenes">
                                         <strong>📁 ¿Dónde van las imágenes?</strong>
-                                        <p>Las imágenes deben estar en la carpeta <code>/imagenes</code> del repositorio en GitHub.</p>
+                                        <p>Las imágenes deben estar en la carpeta <code>/images</code> del repositorio en GitHub.</p>
                                         
                                         <strong>📝 ¿Cómo nombrar las imágenes?</strong>
                                         <ul>
@@ -519,17 +526,24 @@
                                         <strong>🔄 Pasos para agregar una imagen nueva:</strong>
                                         <ol>
                                             <li>Prepara tu imagen (PNG o JPG recomendado)</li>
-                                            <li>En GitHub, navega a la carpeta <code>/imagenes</code></li>
+                                            <li>En GitHub, navega a la carpeta <code>/images</code></li>
                                             <li>Click en "Add file" → "Upload files"</li>
                                             <li>Arrastra tu imagen y haz commit</li>
-                                            <li>En el editor del panel admin, usa <strong>"🖼️ Imagen"</strong> desde la galería</li>
-                                            <li>Escribe el nombre exacto: <code>mi-imagen.png</code></li>
+                                            <li>En el editor del panel admin, click en el botón <span class="boton-ejemplo">🖼️</span></li>
+                                            <li>Se abrirá la galería con todas las imágenes disponibles</li>
+                                            <li>Si no ves tu imagen nueva, presiona <span class="boton-ejemplo">🔄</span> para actualizar</li>
+                                            <li>Click en tu imagen y luego en <span class="boton-ejemplo">✓ Insertar</span></li>
                                         </ol>
                                     </div>
                                 </div>
                                 
                                 <div class="nota-imagenes">
-                                    <strong>💡 Importante:</strong> Las imágenes NO se incluyen en el JSON exportado. Solo se guarda la referencia al nombre del archivo. 
+                                    <strong>💡 Galería Automática:</strong> La galería de imágenes carga automáticamente todas las imágenes desde GitHub.
+                                    Se actualiza cada 30 minutos. Si subiste una imagen nueva y no aparece, usa el botón 🔄 para forzar la actualización.
+                                </div>
+                                
+                                <div class="nota-imagenes">
+                                    <strong>⚠️ Importante:</strong> Las imágenes NO se incluyen en el JSON exportado. Solo se guarda la referencia al nombre del archivo. 
                                     Asegúrate de subir las imágenes a GitHub <strong>antes</strong> de referenciarlas en el contenido.
                                 </div>
                             </div>
@@ -694,13 +708,70 @@
                                             <h4>Agregar Imágenes</h4>
                                         </div>
                                         <div class="contenido-seccion-ayuda">
-                                            <ol>
-                                                <li>Sube la imagen a la carpeta <code>/imagenes</code> en GitHub</li>
-                                                <li>En el editor, click en <span class="boton-ejemplo">🎨 Insertar Elemento</span></li>
-                                                <li>Click en <strong>"🖼️ Insertar Imagen"</strong></li>
-                                                <li>Escribe el nombre exacto del archivo</li>
-                                            </ol>
-                                            <p class="nota-eval">⚠️ Las imágenes NO se guardan en el JSON. Deben existir en el repositorio.</p>
+                                            <div class="subseccion-ayuda">
+                                                <strong>Paso 1 - Subir imagen a GitHub:</strong>
+                                                <ol>
+                                                    <li>Accede al repositorio en GitHub</li>
+                                                    <li>Navega a la carpeta <code>/images</code></li>
+                                                    <li>Click en "Add file" → "Upload files"</li>
+                                                    <li>Arrastra o selecciona tu imagen</li>
+                                                    <li>Click en "Commit changes"</li>
+                                                </ol>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>Paso 2 - Insertar en el módulo:</strong>
+                                                <ol>
+                                                    <li>En el editor de módulo, click en <span class="boton-ejemplo">🖼️</span> (botón de imagen)</li>
+                                                    <li>Se abrirá una galería con todas las imágenes disponibles</li>
+                                                    <li>Usa el buscador o navega para encontrar tu imagen</li>
+                                                    <li>Click en la imagen para seleccionarla</li>
+                                                    <li>Click en <span class="boton-ejemplo">✓ Insertar</span></li>
+                                                </ol>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>🔄 Actualizar lista de imágenes:</strong>
+                                                <p>Si subiste nuevas imágenes y no aparecen, presiona el botón <span class="boton-ejemplo">🔄</span> en la galería para actualizar.</p>
+                                            </div>
+                                            
+                                            <p class="nota-eval">⚠️ Las imágenes NO se guardan en el JSON. Deben existir en el repositorio de GitHub.</p>
+                                            <p class="nota-eval">💡 La galería carga las imágenes desde GitHub automáticamente. Se actualiza cada 30 minutos.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">💾</span>
+                                            <h4>¿Cómo Funciona el Guardado?</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <div class="subseccion-ayuda">
+                                                <strong>🔄 Acciones Inmediatas (se guardan al instante):</strong>
+                                                <p>Estas acciones se guardan automáticamente después de confirmar:</p>
+                                                <ul>
+                                                    <li><strong>Agregar módulo</strong> → Se guarda inmediatamente</li>
+                                                    <li><strong>Eliminar módulo</strong> → Confirmación → Se guarda</li>
+                                                    <li><strong>Mover módulo</strong> (↑↓) → Se guarda inmediatamente</li>
+                                                    <li><strong>Duplicar módulo</strong> → Se guarda inmediatamente</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>✏️ Editores (requieren botón Guardar):</strong>
+                                                <p>Al abrir un editor, los cambios quedan pendientes hasta presionar <span class="boton-ejemplo">💾 Guardar</span>:</p>
+                                                <ul>
+                                                    <li><strong>Editar Módulo</strong> → Cambios en título, ícono, contenido, secciones</li>
+                                                    <li><strong>Configurar Evaluación</strong> → Cambios en preguntas, habitaciones, etc.</li>
+                                                    <li><strong>Editar Insignia</strong> → Cambios en emoji, nombre, descripción</li>
+                                                </ul>
+                                                <p>⚠️ Si cierras sin guardar, aparece una advertencia y puedes descartar o volver.</p>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>📤 Exportar JSON:</strong>
+                                                <p>El JSON exportado contiene SOLO los cambios guardados. Si tienes un editor abierto con cambios sin guardar, verás una advertencia.</p>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -711,7 +782,6 @@
                                         </div>
                                         <div class="contenido-seccion-ayuda">
                                             <ul>
-                                                <li>✅ Los cambios se guardan automáticamente en tu navegador</li>
                                                 <li>✅ Para publicar en producción, exporta el JSON y súbelo a GitHub</li>
                                                 <li>✅ Exporta regularmente como backup de seguridad</li>
                                                 <li>✅ No necesitas saber HTML, CSS ni código</li>

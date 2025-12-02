@@ -10683,16 +10683,6 @@ body.modo-noche .resaltado-busqueda {
     outline: 1px dashed #e5e7eb;
 }
 
-.btn-espacio {
-    background: #10b981 !important;
-    color: white !important;
-}
-
-.btn-espacio:hover {
-    background: #059669 !important;
-    border-color: #10b981 !important;
-}
-
 .btn-galeria-elementos {
     background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
     color: white !important;
@@ -10920,6 +10910,43 @@ body.modo-noche .resaltado-busqueda {
     justify-content: flex-end;
 }
 
+/* Botones de galería y modales */
+.galeria-footer .btn-admin,
+.galeria-modal .btn-admin {
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.galeria-footer .btn-admin.btn-secundario,
+.galeria-modal .btn-admin.btn-secundario {
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+}
+
+.galeria-footer .btn-admin.btn-secundario:hover,
+.galeria-modal .btn-admin.btn-secundario:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+.galeria-footer .btn-admin.btn-primario,
+.galeria-modal .btn-admin.btn-primario {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+}
+
+.galeria-footer .btn-admin.btn-primario:hover,
+.galeria-modal .btn-admin.btn-primario:hover {
+    background: linear-gradient(135deg, #6d28d9, #9333ea);
+    transform: translateY(-1px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .galeria-modal {
@@ -11126,6 +11153,22 @@ body.modo-noche .resaltado-busqueda {
     background: #059669;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Indicador de cambios pendientes */
+.boton-guardar-grande.tiene-cambios {
+    background: #f59e0b;
+    animation: pulso-cambios 1.5s ease-in-out infinite;
+}
+
+.boton-guardar-grande.tiene-cambios:hover {
+    background: #d97706;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+@keyframes pulso-cambios {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
 }
 
 .boton-cerrar-grande {
@@ -12123,6 +12166,39 @@ body.modo-noche .resaltado-busqueda {
     padding: 0.3rem 0;
     font-size: 0.9rem;
     color: #374151;
+}
+
+/* Nota de guardado antes de exportar */
+.nota-guardado-exportar {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    border: 2px solid #3b82f6;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left !important;
+}
+
+.nota-guardado-exportar strong {
+    color: #1d4ed8;
+}
+
+.nota-guardado-exportar > strong:first-child {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.nota-guardado-exportar p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #1e40af;
+    line-height: 1.6;
+    text-align: left !important;
+}
+
+.nota-guardado-exportar p strong {
+    display: inline;
 }
 
 /* Credenciales */
