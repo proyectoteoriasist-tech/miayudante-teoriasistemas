@@ -2292,6 +2292,264 @@ body.modo-noche .editor-rich-text {
     cursor: nw-resize;
 }
 
+/* === Estilos específicos para imágenes en editor de módulos === */
+.imagen-modulo-redimensionable {
+    display: block;
+    margin: 1rem auto;
+    max-width: 100% !important;
+    transition: margin 0.2s ease;
+}
+
+.imagen-modulo-redimensionable .imagen-en-editor {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* === IMÁGENES EN CONTENIDO DE MÓDULOS - Prevenir desbordamiento === */
+/* Contenedor principal del contenido */
+#contenidoModulo,
+.contenido-seccion,
+.contenido-seccion-secuencial,
+.seccion-modulo,
+.vista-principal {
+    overflow-x: hidden;
+}
+
+/* Todas las imágenes dentro del contenido deben respetar el contenedor */
+#contenidoModulo img,
+.contenido-seccion img,
+.contenido-seccion-secuencial img,
+.seccion-modulo img,
+.vista-principal img:not(.logo):not(.icono) {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    box-sizing: border-box;
+}
+
+/* Wrapper de imágenes redimensionables - limitar al contenedor */
+#contenidoModulo .imagen-wrapper-redimensionable,
+.contenido-seccion .imagen-wrapper-redimensionable,
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable,
+.seccion-modulo .imagen-wrapper-redimensionable,
+.vista-principal .imagen-wrapper-redimensionable {
+    max-width: 100% !important;
+    width: auto !important;
+    display: block !important;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+/* Imágenes dentro del wrapper también limitadas */
+#contenidoModulo .imagen-wrapper-redimensionable img,
+.contenido-seccion .imagen-wrapper-redimensionable img,
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable img,
+.seccion-modulo .imagen-wrapper-redimensionable img,
+.vista-principal .imagen-wrapper-redimensionable img {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain;
+}
+
+/* Imágenes directas (sin wrapper) */
+#contenidoModulo > img,
+.contenido-seccion > img,
+.contenido-seccion-secuencial > img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 1rem auto;
+    border-radius: 12px;
+}
+
+/* Indicadores visuales de alineación para imagen seleccionada */
+.imagen-wrapper-redimensionable.seleccionada[style*="margin-right: auto"][style*="margin-left: 0"]::before {
+    content: "⬅ Izquierda";
+    position: absolute;
+    top: -24px;
+    left: 0;
+    font-size: 11px;
+    background: var(--color-primario);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0.9;
+}
+
+.imagen-wrapper-redimensionable.seleccionada[style*="margin-left: auto"][style*="margin-right: auto"]::before {
+    content: "↔ Centro";
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    background: var(--color-primario);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0.9;
+}
+
+.imagen-wrapper-redimensionable.seleccionada[style*="margin-left: auto"][style*="margin-right: 0"]::before {
+    content: "➡ Derecha";
+    position: absolute;
+    top: -24px;
+    right: 0;
+    font-size: 11px;
+    background: var(--color-primario);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0.9;
+}
+
+/* Limitar imágenes en el contenido de los módulos para que no se salgan */
+.contenido-seccion-secuencial img,
+.seccion-modulo img,
+#contenidoModulo img,
+.contenido-seccion img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1rem auto;
+    border-radius: 12px;
+}
+
+/* Imágenes con wrappers redimensionables en el contenido */
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable,
+.seccion-modulo .imagen-wrapper-redimensionable,
+#contenidoModulo .imagen-wrapper-redimensionable {
+    max-width: 100%;
+    display: block;
+    margin: 1rem auto;
+}
+
+/* === OCULTAR controles de imagen FUERA del editor (vista pública) === */
+.contenido-seccion-secuencial .controles-imagen,
+.seccion-modulo .controles-imagen,
+#contenidoModulo .controles-imagen,
+.contenido-seccion .controles-imagen,
+.vista-principal .controles-imagen {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Quitar interactividad de imágenes en vista pública */
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable,
+.seccion-modulo .imagen-wrapper-redimensionable,
+#contenidoModulo .imagen-wrapper-redimensionable,
+.contenido-seccion .imagen-wrapper-redimensionable,
+.vista-principal .imagen-wrapper-redimensionable {
+    pointer-events: none !important;
+    cursor: default !important;
+    outline: none !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Asegurar que las imágenes dentro del wrapper no se desborden */
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable img,
+.seccion-modulo .imagen-wrapper-redimensionable img,
+#contenidoModulo .imagen-wrapper-redimensionable img,
+.contenido-seccion .imagen-wrapper-redimensionable img,
+.vista-principal .imagen-wrapper-redimensionable img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+}
+
+/* Quitar outline en hover en vista pública pero mantener efecto en imagen */
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable:hover,
+.seccion-modulo .imagen-wrapper-redimensionable:hover,
+#contenidoModulo .imagen-wrapper-redimensionable:hover,
+.contenido-seccion .imagen-wrapper-redimensionable:hover,
+.vista-principal .imagen-wrapper-redimensionable:hover {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Efecto zoom para imágenes en vista pública (igual que imagen-arquetipo) */
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable img,
+.seccion-modulo .imagen-wrapper-redimensionable img,
+#contenidoModulo .imagen-wrapper-redimensionable img,
+.contenido-seccion .imagen-wrapper-redimensionable img,
+.vista-principal .imagen-wrapper-redimensionable img {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    pointer-events: auto !important; /* Permitir hover en la imagen */
+}
+
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable img:hover,
+.seccion-modulo .imagen-wrapper-redimensionable img:hover,
+#contenidoModulo .imagen-wrapper-redimensionable img:hover,
+.contenido-seccion .imagen-wrapper-redimensionable img:hover,
+.vista-principal .imagen-wrapper-redimensionable img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable.seleccionada,
+.seccion-modulo .imagen-wrapper-redimensionable.seleccionada,
+#contenidoModulo .imagen-wrapper-redimensionable.seleccionada,
+.contenido-seccion .imagen-wrapper-redimensionable.seleccionada,
+.vista-principal .imagen-wrapper-redimensionable.seleccionada {
+    outline: none !important;
+}
+
+.contenido-seccion-secuencial .imagen-wrapper-redimensionable::before,
+.seccion-modulo .imagen-wrapper-redimensionable::before,
+#contenidoModulo .imagen-wrapper-redimensionable::before,
+.contenido-seccion .imagen-wrapper-redimensionable::before,
+.vista-principal .imagen-wrapper-redimensionable::before {
+    display: none !important;
+}
+
+/* Ocultar handles de redimensionamiento en vista pública */
+.contenido-seccion-secuencial .handle-resize,
+.seccion-modulo .handle-resize,
+#contenidoModulo .handle-resize,
+.contenido-seccion .handle-resize,
+.vista-principal .handle-resize {
+    display: none !important;
+}
+
+/* === REGLA GENERAL: Fuera del panel admin, limpiar todos los estilos de edición === */
+body:not(.admin-panel-activo) .imagen-wrapper-redimensionable {
+    pointer-events: none !important;
+    outline: none !important;
+}
+
+body:not(.admin-panel-activo) .imagen-wrapper-redimensionable:hover {
+    outline: none !important;
+}
+
+body:not(.admin-panel-activo) .imagen-wrapper-redimensionable .controles-imagen,
+body:not(.admin-panel-activo) .imagen-wrapper-redimensionable .handle-resize {
+    display: none !important;
+}
+
+/* Editor visual de módulos - imágenes */
+.editor-contenido-visual img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+}
+
+.editor-contenido-visual .imagen-wrapper-redimensionable {
+    display: block;
+    margin: 1rem auto;
+}
+
+.editor-contenido-visual .imagen-wrapper-redimensionable:hover {
+    outline: 2px dashed rgba(124, 58, 237, 0.4);
+    outline-offset: 4px;
+}
+
 /* Estilos para el contenido del editor */
 .editor-rich-text p {
     margin: 0.5rem 0;

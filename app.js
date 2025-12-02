@@ -407,29 +407,16 @@ function confirmarCambiarNombre() {
 function guardarEstado() {
     try {
         localStorage.setItem("estadoTeoriaSistemas", JSON.stringify(estadoGlobal));
-        console.log('💾 Estado guardado:', {
-            modulosCompletados: estadoGlobal.modulosCompletados,
-            modulosIniciados: estadoGlobal.modulosIniciados,
-            insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0
-        });
     } catch (e) {
-        console.error('❌ Error guardando estado:', e);
+        console.error('Error guardando estado:', e);
     }
 }
 
 function cargarEstado() {
-    console.log('🔄 Intentando cargar estado...');
     const estado = localStorage.getItem("estadoTeoriaSistemas");
-    console.log('📦 Estado en localStorage:', estado ? 'existe (' + estado.length + ' chars)' : 'NO EXISTE');
     
     if (estado) {
         estadoGlobal = JSON.parse(estado);
-        console.log('✅ Estado cargado:', {
-            modulosCompletados: estadoGlobal.modulosCompletados,
-            modulosIniciados: estadoGlobal.modulosIniciados,
-            insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0,
-            nombreUsuario: estadoGlobal.nombreUsuario
-        });
         // Asegurar que existan todas las propiedades necesarias
         if (!estadoGlobal.notasModulos) {
             estadoGlobal.notasModulos = {};
@@ -756,7 +743,6 @@ function actualizarSidebar() {
             // Marcar módulo como iniciado si no lo está ya
             if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
                 estadoGlobal.modulosIniciados.push(modulo.id);
-                console.log('📖 Módulo marcado como iniciado:', modulo.id);
             }
             
             guardarEstado();
@@ -871,7 +857,6 @@ function actualizarDashboard() {
                 // Marcar módulo como iniciado si no lo está ya
                 if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
                     estadoGlobal.modulosIniciados.push(modulo.id);
-                    console.log('📖 Módulo marcado como iniciado:', modulo.id);
                 }
                 
                 guardarEstado();
@@ -1162,7 +1147,6 @@ function actualizarVistaPrincipal() {
     if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
         estadoGlobal.modulosIniciados.push(modulo.id);
         guardarEstado();
-        console.log('📖 Módulo marcado como iniciado:', modulo.id);
     }
 
     // Actualizar estado visual
@@ -2192,11 +2176,7 @@ let estadoEvaluacion = {
 // Obtener mejor puntaje guardado
 function obtenerMejorPuntaje(moduloId) {
     const mejores = JSON.parse(localStorage.getItem('mejoresPuntajes') || '{}');
-    const puntaje = mejores[moduloId] || null;
-    if (puntaje) {
-        console.log(`🏆 Mejor puntaje módulo ${moduloId}:`, puntaje);
-    }
-    return puntaje;
+    return mejores[moduloId] || null;
 }
 
 // Guardar mejor puntaje
@@ -2207,9 +2187,6 @@ function guardarMejorPuntaje(moduloId, porcentaje, correctas, total) {
     if (!actual || porcentaje > actual.porcentaje) {
         mejores[moduloId] = { porcentaje, correctas, total, fecha: new Date().toLocaleDateString() };
         localStorage.setItem('mejoresPuntajes', JSON.stringify(mejores));
-        console.log(`🎯 Nuevo mejor puntaje guardado para módulo ${moduloId}:`, mejores[moduloId]);
-    } else {
-        console.log(`📊 Puntaje ${porcentaje}% no supera el mejor (${actual.porcentaje}%)`);
     }
 }
 
@@ -5015,15 +4992,18 @@ function abrirModalAdmin() {
         document.getElementById('loginAdmin').classList.remove('oculta');
         document.getElementById('panelAdmin').classList.add('oculta');
         document.getElementById('passwordAdmin').focus();
+        document.body.classList.remove('admin-panel-activo');
     } else {
         document.getElementById('loginAdmin').classList.add('oculta');
         document.getElementById('panelAdmin').classList.remove('oculta');
+        document.body.classList.add('admin-panel-activo');
         cargarDatosAdmin();
     }
 }
 
 function cerrarModalAdmin() {
     document.getElementById('modalAdmin').classList.add('oculta');
+    document.body.classList.remove('admin-panel-activo');
 }
 
 // Event listener para login
@@ -5081,6 +5061,7 @@ function intentarLoginAdmin() {
         estadoAdmin.autenticado = true;
         document.getElementById('loginAdmin').classList.add('oculta');
         document.getElementById('panelAdmin').classList.remove('oculta');
+        document.body.classList.add('admin-panel-activo');
         cargarDatosAdmin();
     } else {
         errorEl.classList.remove('oculta');
@@ -5134,20 +5115,12 @@ function establecerEvaluacionAdmin(moduloId, evaluacion) {
 }
 
 function cargarDatosAdmin() {
-    console.log('🔄 CARGANDO DATOS ADMIN...');
-    
     // Cargar desde localStorage si existe, sino desde las variables globales
     const datosGuardados = localStorage.getItem('adminContentData');
-    console.log('localStorage existe:', !!datosGuardados);
     
     // Siempre empezar con los datos originales del JSON
     const modulosBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_TEORICO)));
     const evaluacionesBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_EVALUACION)));
-    
-    console.log('Datos base del JSON:', {
-        modulosKeys: Object.keys(modulosBase),
-        evaluacionesKeys: Object.keys(evaluacionesBase)
-    });
     
     if (datosGuardados) {
         const datos = JSON.parse(datosGuardados);
@@ -5193,20 +5166,7 @@ function guardarDatosAdmin() {
         listaModulos: MODULOS  // Guardar también la estructura de módulos
     };
     
-    // DEBUG: Mostrar qué se está guardando
-    console.log('💾 GUARDANDO EN LOCALSTORAGE:', {
-        cantidadModulos: Object.keys(datos.modulos || {}).length,
-        cantidadEvaluaciones: Object.keys(datos.evaluaciones || {}).length,
-        cantidadListaModulos: (datos.listaModulos || []).length,
-        modulosKeys: Object.keys(datos.modulos || {}),
-        evaluacionesKeys: Object.keys(datos.evaluaciones || {})
-    });
-    
     localStorage.setItem('adminContentData', JSON.stringify(datos));
-    
-    // Verificar que se guardó correctamente
-    const verificacion = localStorage.getItem('adminContentData');
-    console.log('✓ Verificación localStorage:', verificacion ? 'OK - ' + verificacion.length + ' caracteres' : 'ERROR');
     
     // Actualizar referencias globales para que la app use los datos editados inmediatamente
     CONTENIDO_TEORICO = { ...estadoAdmin.modulosEditados };
@@ -6381,14 +6341,8 @@ function inicializarEditorVisual(moduloId) {
         }, 100);
     });
     
-    // Manejo de copy: asegurar que se copie con HTML
-    editor.addEventListener('copy', (e) => {
-        console.log('📋 Copiando contenido con formato HTML');
-    });
-    
-    // Manejo de cut: asegurar que se corte con HTML
+    // Manejo de cut: actualizar después de cortar
     editor.addEventListener('cut', (e) => {
-        console.log('✂️ Cortando contenido con formato HTML');
         setTimeout(() => {
             if (estadoAdmin.seccionesTemporales) {
                 estadoAdmin.seccionesTemporales[estadoAdmin.seccionActualEdicion] = editor.innerHTML;
@@ -6892,8 +6846,8 @@ function confirmarInsertarImagen() {
         const imgWrapper = document.createElement('div');
         imgWrapper.className = 'imagen-wrapper-redimensionable imagen-modulo-redimensionable';
         imgWrapper.contentEditable = 'false';
-        imgWrapper.style.width = '100%';
-        imgWrapper.style.maxWidth = '600px';
+        // No fijar width/maxWidth inline - dejar que CSS lo controle para mejor responsividad
+        imgWrapper.style.maxWidth = '100%';
         
         // Crear imagen
         const imgElement = document.createElement('img');
@@ -8591,33 +8545,20 @@ function exportarJSON() {
 }
 
 function realizarExportacionJSON() {
-    console.log('🔍 INICIANDO EXPORTACIÓN...');
-    console.log('Estado actual de estadoAdmin.modulosEditados:', estadoAdmin.modulosEditados);
-    console.log('Estado actual de estadoAdmin.evaluacionesEditadas:', estadoAdmin.evaluacionesEditadas);
-    
     // Asegurar que estadoAdmin tenga los datos más recientes
     // Si no están inicializados, cargarlos desde las variables globales y localStorage
     if (!estadoAdmin.modulosEditados || Object.keys(estadoAdmin.modulosEditados).length === 0) {
-        console.log('⚠️ estadoAdmin vacío, intentando cargar desde localStorage...');
-        
         // Intentar cargar desde localStorage primero
         const datosGuardados = localStorage.getItem('adminContentData');
-        console.log('localStorage adminContentData:', datosGuardados ? 'existe (' + datosGuardados.length + ' chars)' : 'NO EXISTE');
         
         if (datosGuardados) {
             const datos = JSON.parse(datosGuardados);
-            console.log('Datos parseados de localStorage:', {
-                modulosKeys: Object.keys(datos.modulos || {}),
-                evaluacionesKeys: Object.keys(datos.evaluaciones || {}),
-                listaModulosLength: (datos.listaModulos || []).length
-            });
             estadoAdmin.modulosEditados = normalizarClaves(datos.modulos || {});
             estadoAdmin.evaluacionesEditadas = normalizarClaves(datos.evaluaciones || {});
             if (datos.listaModulos && datos.listaModulos.length > 0) {
                 MODULOS = datos.listaModulos;
             }
         } else {
-            console.log('⚠️ No hay localStorage, usando CONTENIDO_TEORICO original');
             // Usar datos del JSON original
             estadoAdmin.modulosEditados = normalizarClaves({ ...CONTENIDO_TEORICO });
             estadoAdmin.evaluacionesEditadas = normalizarClaves({ ...CONTENIDO_EVALUACION });
@@ -8626,7 +8567,6 @@ function realizarExportacionJSON() {
     
     // Verificar que hay datos para exportar
     if (!estadoAdmin.modulosEditados || Object.keys(estadoAdmin.modulosEditados).length === 0) {
-        console.error('❌ ERROR: No hay datos para exportar');
         mostrarNotificacion('⚠️ No hay datos para exportar. Intenta recargar la página.', 'error');
         return;
     }
@@ -8649,21 +8589,7 @@ function realizarExportacionJSON() {
         evaluaciones: estadoAdmin.evaluacionesEditadas  // Configuración de evaluaciones
     };
     
-    // DEBUG: Mostrar muestra del contenido de un módulo
-    const primerModuloKey = Object.keys(dataExport.modulos)[0];
-    if (primerModuloKey) {
-        const contenido = dataExport.modulos[primerModuloKey];
-        console.log(`📄 Muestra del módulo ${primerModuloKey}:`, contenido ? contenido.substring(0, 200) + '...' : 'VACÍO');
-    }
-    
     const jsonString = JSON.stringify(dataExport, null, 2);
-    console.log('📦 JSON generado:', jsonString.length, 'caracteres');
-    console.log('📊 Estructura exportada:', {
-        listaModulos: modulosLimpios.length,
-        modulos: Object.keys(dataExport.modulos),
-        evaluaciones: Object.keys(dataExport.evaluaciones),
-        tamañoTotal: jsonString.length
-    });
     
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -8682,13 +8608,6 @@ function realizarExportacionJSON() {
 
 // Inicializar la aplicación cuando el DOM esté listo y el contenido cargado
 window.addEventListener("DOMContentLoaded", async function() {
-    console.log('🚀 Iniciando aplicación...');
-    console.log('📊 localStorage disponible:', typeof localStorage !== 'undefined');
-    
-    // Verificar estado ANTES de cualquier carga
-    const estadoPrevio = localStorage.getItem("estadoTeoriaSistemas");
-    console.log('📋 Estado del usuario ANTES de inicializar:', estadoPrevio ? JSON.parse(estadoPrevio).modulosCompletados : 'NO HAY');
-    
     // Primero cargar el contenido teórico desde el JSON
     const cargaExitosa = await cargarContenidoTeorico();
     
@@ -8721,17 +8640,9 @@ window.addEventListener("DOMContentLoaded", async function() {
                 console.log('✅ Estructura de módulos cargada desde localStorage');
             }
             
-            console.log('✅ Contenido editado cargado desde localStorage');
         }
-        
-        // Verificar estado DESPUÉS de cargar contenido pero ANTES de inicializarApp
-        const estadoDespues = localStorage.getItem("estadoTeoriaSistemas");
-        console.log('📋 Estado del usuario DESPUÉS de cargar contenido:', estadoDespues ? JSON.parse(estadoDespues).modulosCompletados : 'NO HAY');
         
         // Luego inicializar la aplicación
         inicializarApp();
-        
-        // Verificar estado DESPUÉS de inicializar
-        console.log('📋 Estado final después de inicializar:', estadoGlobal.modulosCompletados);
     }
 });
