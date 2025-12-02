@@ -5349,6 +5349,9 @@ function editarModuloAdmin(moduloId) {
                         <button class="btn-toolbar btn-espacio" onclick="insertarEstiloPredefinido('espacio')" title="Insertar Espacio entre Elementos" type="button">
                             ⬇️
                         </button>
+                        <button class="btn-toolbar btn-imagen" onclick="abrirModalInsertarImagen()" title="Insertar Imagen" type="button">
+                            🖼️
+                        </button>
                         <span class="separador-toolbar"></span>
                         <button class="btn-toolbar btn-galeria-elementos" onclick="abrirGaleriaElementos()" title="Galería de Elementos" type="button">
                             🎨 Insertar Elemento
@@ -6294,17 +6297,235 @@ function insertarEstiloPredefinido(tipo) {
     }
 }
 
-function insertarImagenEditor() {
-    const nombreImagen = prompt('Ingresa el nombre del archivo de imagen (debe estar en la carpeta /imagenes):\n\nEjemplo: Caja negra.png');
-    if (!nombreImagen) return;
+// Configuración del repositorio para obtener imágenes dinámicamente
+const GITHUB_REPO = 'proyectoteoriasist-tech/miayudante-teoriasistemas';
+const GITHUB_IMAGES_PATH = 'imagenes';
+const CACHE_KEY_IMAGENES = 'imagenesDisponibles';
+const CACHE_DURACION = 1000 * 60 * 30; // 30 minutos de caché
+
+// Obtener lista de imágenes desde GitHub API o caché
+async function obtenerImagenesDisponibles() {
+    // Verificar caché
+    const cache = localStorage.getItem(CACHE_KEY_IMAGENES);
+    if (cache) {
+        const { imagenes, timestamp } = JSON.parse(cache);
+        if (Date.now() - timestamp < CACHE_DURACION) {
+            return imagenes;
+        }
+    }
     
-    const html = `
-        <p><br></p>
-        <img src="imagenes/${nombreImagen}" alt="${nombreImagen}" style="max-width: 100%; border-radius: 12px; margin: 1rem 0;">
-        <p class="espacio-editable"><br></p>
+    try {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_IMAGES_PATH}`);
+        if (!response.ok) throw new Error('No se pudo obtener la lista');
+        
+        const archivos = await response.json();
+        const imagenes = archivos
+            .filter(archivo => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(archivo.name))
+            .map(archivo => archivo.name)
+            .sort((a, b) => a.localeCompare(b));
+        
+        // Guardar en caché
+        localStorage.setItem(CACHE_KEY_IMAGENES, JSON.stringify({
+            imagenes,
+            timestamp: Date.now()
+        }));
+        
+        return imagenes;
+    } catch (error) {
+        console.warn('Error obteniendo imágenes de GitHub:', error);
+        // Fallback: intentar cargar desde caché expirado si existe
+        if (cache) {
+            return JSON.parse(cache).imagenes;
+        }
+        return [];
+    }
+}
+
+// Forzar actualización del caché de imágenes
+function actualizarCacheImagenes() {
+    localStorage.removeItem(CACHE_KEY_IMAGENES);
+    mostrarNotificacion('🔄 Actualizando lista de imágenes...');
+    obtenerImagenesDisponibles().then(imagenes => {
+        if (imagenes.length > 0) {
+            mostrarNotificacion(`✓ ${imagenes.length} imágenes encontradas`);
+            // Actualizar galería si está abierta
+            const grid = document.getElementById('galeriaImagenesGrid');
+            if (grid) {
+                renderizarGaleriaImagenes(imagenes);
+            }
+        } else {
+            mostrarNotificacion('⚠️ No se pudieron cargar las imágenes', 'error');
+        }
+    });
+}
+
+function renderizarGaleriaImagenes(imagenes) {
+    const grid = document.getElementById('galeriaImagenesGrid');
+    if (!grid) return;
+    
+    if (imagenes.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #666;">
+                <p>⚠️ No se encontraron imágenes.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Puedes escribir el nombre manualmente en el campo de arriba.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = imagenes.map(img => `
+        <div class="item-imagen-galeria" onclick="seleccionarImagenGaleria('${img}')" title="${img}">
+            <img src="imagenes/${img}" alt="${img}" loading="lazy" onerror="this.parentElement.style.display='none'">
+            <span class="nombre-imagen">${img.replace(/\.(png|jpg|jpeg|gif|webp|svg)$/i, '')}</span>
+        </div>
+    `).join('');
+}
+
+async function abrirModalInsertarImagen() {
+    // Crear modal con loading inicial
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay-galeria-elementos';
+    overlay.id = 'modalInsertarImagen';
+    overlay.onclick = (e) => {
+        if (e.target === overlay) cerrarModalInsertarImagen();
+    };
+    
+    overlay.innerHTML = `
+        <div class="galeria-elementos-modal" style="max-width: 800px;">
+            <button class="cerrar-galeria" onclick="cerrarModalInsertarImagen()">✕</button>
+            <h2>🖼️ Insertar Imagen</h2>
+            <p style="color: #666; margin-bottom: 1rem;">Selecciona una imagen de la carpeta <code>/imagenes</code> o escribe el nombre manualmente.</p>
+            
+            <div class="campo-editor" style="margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="inputNombreImagen" class="input-admin" 
+                        placeholder="🔍 Buscar imagen por nombre..." 
+                        style="flex: 1; font-size: 1rem; padding: 0.75rem;">
+                    <button class="btn-admin btn-secundario" onclick="actualizarCacheImagenes()" title="Actualizar lista de imágenes" style="padding: 0.75rem;">
+                        🔄
+                    </button>
+                </div>
+            </div>
+            
+            <div class="galeria-imagenes-container" style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: #fafafa;">
+                <div class="galeria-imagenes-grid" id="galeriaImagenesGrid">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
+                        ⏳ Cargando imágenes...
+                    </div>
+                </div>
+            </div>
+            
+            <div id="previewImagenSeleccionada" style="margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; display: none;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <img id="imgPreviewSeleccionada" src="" alt="Preview" style="max-width: 120px; max-height: 80px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="flex: 1;">
+                        <strong id="nombreImagenSeleccionada" style="color: #1f2937; font-size: 0.95rem;"></strong>
+                        <p style="color: #10b981; margin-top: 0.25rem; font-size: 0.85rem;">✓ Imagen seleccionada</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="galeria-footer" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                <button class="btn-admin btn-secundario" onclick="cerrarModalInsertarImagen()">Cancelar</button>
+                <button class="btn-admin btn-primario" onclick="confirmarInsertarImagen()" id="btnConfirmarImagen">
+                    ✓ Insertar
+                </button>
+            </div>
+        </div>
     `;
-    document.execCommand('insertHTML', false, html);
-    actualizarVistaPreviewSecciones();
+    
+    document.body.appendChild(overlay);
+    
+    // Cargar imágenes dinámicamente
+    const imagenes = await obtenerImagenesDisponibles();
+    renderizarGaleriaImagenes(imagenes);
+    
+    // Inicializar búsqueda
+    const input = document.getElementById('inputNombreImagen');
+    if (input) {
+        input.addEventListener('input', filtrarImagenesGaleria);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirmarInsertarImagen();
+            if (e.key === 'Escape') cerrarModalInsertarImagen();
+        });
+    }
+}
+
+function filtrarImagenesGaleria() {
+    const input = document.getElementById('inputNombreImagen');
+    const busqueda = input.value.toLowerCase().trim();
+    const grid = document.getElementById('galeriaImagenesGrid');
+    
+    if (!busqueda) {
+        // Mostrar todas
+        grid.querySelectorAll('.item-imagen-galeria').forEach(item => {
+            item.style.display = 'flex';
+        });
+        return;
+    }
+    
+    // Filtrar por nombre
+    grid.querySelectorAll('.item-imagen-galeria').forEach(item => {
+        const nombre = item.getAttribute('title').toLowerCase();
+        item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
+    });
+}
+
+function seleccionarImagenGaleria(nombreImagen) {
+    // Actualizar input
+    const input = document.getElementById('inputNombreImagen');
+    if (input) input.value = nombreImagen;
+    
+    // Marcar como seleccionada visualmente
+    document.querySelectorAll('.item-imagen-galeria').forEach(item => {
+        item.classList.remove('seleccionada');
+        if (item.getAttribute('title') === nombreImagen) {
+            item.classList.add('seleccionada');
+        }
+    });
+    
+    // Mostrar preview
+    const previewContainer = document.getElementById('previewImagenSeleccionada');
+    const imgPreview = document.getElementById('imgPreviewSeleccionada');
+    const nombrePreview = document.getElementById('nombreImagenSeleccionada');
+    
+    if (previewContainer && imgPreview && nombrePreview) {
+        previewContainer.style.display = 'block';
+        imgPreview.src = `imagenes/${nombreImagen}`;
+        nombrePreview.textContent = nombreImagen;
+    }
+}
+
+function cerrarModalInsertarImagen() {
+    const modal = document.getElementById('modalInsertarImagen');
+    if (modal) modal.remove();
+}
+
+function confirmarInsertarImagen() {
+    const input = document.getElementById('inputNombreImagen');
+    const nombreImagen = input?.value.trim();
+    
+    if (!nombreImagen) {
+        mostrarNotificacion('⚠️ Selecciona o escribe el nombre de una imagen', 'error');
+        return;
+    }
+    
+    // Enfocar el editor antes de insertar
+    const editor = document.getElementById('editorContenidoVisual');
+    if (editor) {
+        editor.focus();
+        
+        const html = `
+            <p><br></p>
+            <img src="imagenes/${nombreImagen}" alt="${nombreImagen}" style="max-width: 100%; border-radius: 12px; margin: 1rem 0;">
+            <p class="espacio-editable"><br></p>
+        `;
+        document.execCommand('insertHTML', false, html);
+        actualizarVistaPreviewSecciones();
+        mostrarNotificacion('🖼️ Imagen insertada');
+    }
+    
+    cerrarModalInsertarImagen();
 }
 
 // ========== GALERÍA DE ELEMENTOS ==========
@@ -6635,8 +6856,7 @@ function abrirGaleriaElementos() {
                 ${categoriasHTML}
             </div>
             <div class="galeria-footer">
-                <button class="btn-admin btn-secundario" onclick="insertarImagenEditor(); cerrarGaleriaElementos();">🖼️ Insertar Imagen</button>
-                <button class="btn-admin btn-secundario" onclick="cerrarGaleriaElementos()">Cancelar</button>
+                <button class="btn-admin btn-secundario" onclick="cerrarGaleriaElementos()">Cerrar</button>
             </div>
         </div>
     `;
@@ -6704,6 +6924,11 @@ window.abrirGaleriaElementos = abrirGaleriaElementos;
 window.cerrarGaleriaElementos = cerrarGaleriaElementos;
 window.filtrarGaleria = filtrarGaleria;
 window.seleccionarElementoGaleria = seleccionarElementoGaleria;
+window.abrirModalInsertarImagen = abrirModalInsertarImagen;
+window.cerrarModalInsertarImagen = cerrarModalInsertarImagen;
+window.confirmarInsertarImagen = confirmarInsertarImagen;
+window.seleccionarImagenGaleria = seleccionarImagenGaleria;
+window.actualizarCacheImagenes = actualizarCacheImagenes;
 
 function actualizarVistaPreviewSecciones() {
     const listaSecciones = document.getElementById('listaSecciones');
