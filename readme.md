@@ -167,7 +167,6 @@ Ambas plataformas están configuradas con la siguiente cuenta de Google:
 | Campo | Valor |
 |-------|-------|
 | **Email** | `proyectoteoriasist@gmail.com` |
-| **Contraseña** | `PlataformaTSUADE#1` |
 
 > 💡 **Importante**: En GitHub y Vercel, usar la opción **"Continuar con Google"** e ingresar con esta cuenta.
 
@@ -227,7 +226,7 @@ miayudante-teoriasistemas/
 #### 3️⃣ Subir a GitHub
 - Ingresa a [github.com/proyectoteoriasist-tech/miayudante-teoriasistemas](https://github.com/proyectoteoriasist-tech/miayudante-teoriasistemas)
 - Click en **"Sign in with Google"**
-- Usa: `proyectoteoriasist@gmail.com` / `PlataformaTSUADE#1`
+- Usa la cuenta: `proyectoteoriasist@gmail.com`
 - Busca el archivo `contenido-teorico.json`
 - Click en el archivo → Click en el ícono de lápiz (✏️)
 - Borra todo → Pega el contenido del archivo descargado
