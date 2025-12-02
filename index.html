@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teoría de Sistemas - Plataforma Educativa</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Pantalla de inicio -->
+    <div id="pantallaInicio" class="pantalla-inicio">
+        <div class="contenedor-inicio">
+            <div class="header-inicio">
+                <div class="logo-inicio">
+                    <div class="icono-logo">🎓</div>
+                    <h1>MiAyudante</h1>
+                    <p class="subtitulo-inicio">Teoría de Sistemas</p>
+                </div>
+                <p class="descripcion-inicio">Plataforma educativa gamificada para UADE</p>
+            </div>
+            
+            <form id="formularioInicio" class="formulario-inicio">
+                <div class="grupo-input">
+                    <label for="nombreAlumno">¿Cuál es tu nombre?</label>
+                    <input 
+                        type="text" 
+                        id="nombreAlumno" 
+                        placeholder="Ej: Matías González" 
+                        required
+                        autocomplete="name"
+                    />
+                </div>
+                <div class="botones-inicio">
+                    <button type="submit" class="boton-comenzar">
+                        <span>Comenzar Curso</span>
+                        <span class="flecha-boton">→</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="info-funciona">
+                <div class="features-inline">
+                    <span class="feature-badge">📚 5 Unidades</span>
+                    <span class="feature-badge">🎯 Evaluaciones</span>
+                    <span class="feature-badge">🏆 Insignias</span>
+                    <span class="feature-badge">📝 Notas</span>
+                    <span class="feature-badge">💾 Auto-guardado</span>
+                </div>
+                <p class="footer-inicio">© 2025 UADE - Prof. Marcelo Castro</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHANGE: Added diagnosis modal -->
+    <div id="modalDiagnostico" class="modal-diagnostico oculta">
+        <div class="contenedor-diagnostico">
+            <button id="botonCerrarDiagnostico" class="boton-cerrar-modal">×</button>
+            <div id="vistaDiagnostico" class="vista-diagnostico">
+                <div class="encabezado-diagnostico">
+                    <h2>🧠 Diagnóstico de Conocimientos</h2>
+                    <p>Responde 3 preguntas para conocer tu nivel inicial</p>
+                </div>
+                <div id="contenidoDiagnostico"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación de limpiar notas -->
+    <div id="modalLimpiarNotas" class="modal-confirmacion oculta">
+        <div class="contenedor-modal-confirmacion">
+            <div class="icono-advertencia">🗑️</div>
+            <h2>¿Borrar todas las notas de este módulo?</h2>
+            <div class="info-reinicio">
+                <p><strong>Esta acción eliminará:</strong></p>
+                <ul class="lista-advertencia">
+                    <li>✗ Todo el texto escrito</li>
+                    <li>✗ Todas las imágenes insertadas</li>
+                    <li>✗ Todo el formato aplicado</li>
+                </ul>
+                <p class="nota-importante">⚠️ <strong>Nota:</strong> Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="botones-confirmacion">
+                <button id="botonCancelarLimpiar" class="boton-cancelar">Cancelar</button>
+                <button id="botonConfirmarLimpiar" class="boton-confirmar-reiniciar">Sí, borrar todo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para cambiar nombre -->
+    <div id="modalCambiarNombre" class="modal-confirmacion oculta">
+        <div class="contenedor-modal-confirmacion modal-nombre">
+            <div class="icono-modal-nombre">👤</div>
+            <h2>Cambiar nombre</h2>
+            <div class="campo-nombre-modal">
+                <label for="inputNuevoNombre">¿Cómo te gustaría que te llamemos?</label>
+                <input type="text" id="inputNuevoNombre" placeholder="Tu nombre" autocomplete="name" />
+            </div>
+            <div class="botones-confirmacion">
+                <button id="botonCancelarNombre" class="boton-cancelar">Cancelar</button>
+                <button id="botonConfirmarNombre" class="boton-confirmar-nombre">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar salir del Escape Room -->
+    <div id="modalSalirEscape" class="modal-confirmacion oculta">
+        <div class="contenedor-modal-confirmacion modal-salir-escape">
+            <div class="icono-modal-salir">🚪</div>
+            <h2>¿Salir del Escape Room?</h2>
+            <p class="texto-modal-salir">Tu progreso actual en esta evaluación se perderá y tendrás que empezar de nuevo.</p>
+            <div class="botones-confirmacion">
+                <button id="botonCancelarSalir" class="boton-cancelar">Continuar Jugando</button>
+                <button id="botonConfirmarSalir" class="boton-confirmar-salir">Sí, salir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación de reinicio -->
+    <div id="modalReiniciar" class="modal-confirmacion oculta">
+        <div class="contenedor-modal-confirmacion">
+            <div class="icono-advertencia">⚠️</div>
+            <h2>¿Estás seguro de que deseas reiniciar tu progreso?</h2>
+            <div class="info-reinicio">
+                <p><strong>Esta acción eliminará permanentemente:</strong></p>
+                <ul class="lista-advertencia">
+                    <li>✗ Todos los módulos completados</li>
+                    <li>✗ Todas las insignias desbloqueadas</li>
+                    <li>✗ Tu progreso actual (8%)</li>
+                    <li>✗ El tiempo acumulado en la plataforma</li>
+                </ul>
+                <p class="nota-importante">⚡ <strong>Nota:</strong> Esta acción no se puede deshacer. Tu nombre de usuario se mantendrá.</p>
+            </div>
+            <div class="botones-confirmacion">
+                <button id="botonCancelarReiniciar" class="boton-cancelar">Cancelar</button>
+                <button id="botonConfirmarReiniciar" class="boton-confirmar-reiniciar">Sí, reiniciar todo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalInfo" class="modal-info oculta">
+        <div class="contenedor-info-modal">
+            <button id="botonCerrarInfo" class="boton-cerrar-modal">×</button>
+            <h2>📚 Acerca del proyecto</h2>
+            <p class="texto-modal-info">
+                Plataforma educativa desarrollada como recurso complementario para la materia
+                <strong>Teoría de Sistemas</strong> dictada por el <strong>Prof. Marcelo Castro</strong>
+                en la Universidad Argentina de la Empresa (UADE), Departamento de Tecnología Informática.
+            </p>
+            <h3>🎯 Objetivo</h3>
+            <p class="texto-modal-info">
+                Facilitar el aprendizaje y comprensión de conceptos complejos de la teoría de sistemas
+                mediante una experiencia gamificada, estructurada e interactiva, reutilizable para futuras cursadas.
+            </p>
+            <h3>📖 Fuentes</h3>
+            <p class="texto-modal-info">
+                Programa oficial de la materia, apuntes del curso, slides de clases semanales y
+                resúmenes teóricos elaborados por alumnos de UADE.
+            </p>
+            <p class="texto-modal-info texto-pequenio">
+                © 2025 UADE - Teoría de Sistemas | Desarrollado por Matias Sergio Sgherza LU 1146341 | Segundo Cuatrimestre 2025
+            </p>
+        </div>
+    </div>
+
+    <!-- Pantalla principal de aprendizaje -->
+    <div id="pantallaAprendizaje" class="pantalla-aprendizaje oculta">
+        <!-- Navbar superior -->
+        <nav class="navbar-superior">
+            <button id="botonMenuNavbar" class="boton-menu-navbar">☰</button>
+            <div class="titulo-navbar">MiAyudante - Teoría de Sistemas</div>
+            
+            <!-- Buscador -->
+            <div class="buscador-container">
+                <div class="buscador-input-wrapper">
+                    <span class="buscador-icono">🔍</span>
+                    <input type="text" id="buscadorInput" class="buscador-input" placeholder="Buscar en el contenido..." autocomplete="off">
+                    <button id="buscadorCerrar" class="buscador-cerrar oculto">✕</button>
+                </div>
+                <div id="buscadorResultados" class="buscador-resultados oculto">
+                    <!-- Resultados dinámicos -->
+                </div>
+            </div>
+            
+            <div class="acciones-navbar">
+                <button id="botonLogrosNavbar" class="boton-navbar" title="Logros">🏆</button>
+                <button id="botonInfoNavbar" class="boton-navbar" title="Información">ℹ️</button>
+                <button id="botonReiniciarNavbar" class="boton-navbar" title="Reiniciar">↻</button>
+                <button id="botonTemaNavbar" class="boton-navbar" title="Modo Noche">🌙</button>
+            </div>
+        </nav>
+        
+        <!-- Overlay para cerrar sidebar en móvil -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="saludo-usuario" id="saludoUsuario" title="Clic para cambiar nombre">
+                <p>¡Hola, <span id="nombreUsuario">Usuario</span>!</p>
+            </div>
+
+            <!-- CHANGE: Added dashboard button -->
+            <button id="botonDashboard" class="boton-dashboard">📊 Dashboard</button>
+
+            <div class="barra-progreso-contenedor">
+                <div class="etiqueta-progreso">Progreso Global</div>
+                <div class="barra-progreso">
+                    <div id="barraProgreso" class="barra-relleno"></div>
+                </div>
+                <div class="porcentaje-progreso"><span id="porcentajeProgreso">0</span>%</div>
+            </div>
+
+            <nav class="menu-modulos">
+                <div id="listaModulos" class="lista-modulos">
+                    <!-- Se genera dinámicamente -->
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Botones movidos al navbar superior -->
+            </div>
+        </aside>
+
+        <!-- Contenido principal -->
+        <main id="contenidoPrincipal" class="contenido-principal">
+            <!-- CHANGE: Added dashboard view -->
+            <div id="vistaDashboard" class="vista-dashboard oculta">
+                <div class="encabezado-dashboard">
+                    <h2>📊 Dashboard</h2>
+                    <p>Resumen de tu progreso en el curso</p>
+                </div>
+
+                <div class="estadisticas-dashboard">
+                    <div class="tarjeta-estadistica">
+                        <div class="icono-stat">📚</div>
+                        <div class="contenido-stat">
+                            <div class="numero-stat"><span id="unidadesCompletadasNum">0</span>/5</div>
+                            <div class="etiqueta-stat">Unidades Completadas</div>
+                        </div>
+                    </div>
+                    <div class="tarjeta-estadistica tarjeta-insignias-clickable">
+                        <div class="icono-stat">🏅</div>
+                        <div class="contenido-stat">
+                            <div class="numero-stat"><span id="insigniasObtenidasNum">0</span>/5</div>
+                            <div class="etiqueta-stat">Insignias Obtenidas</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seccion-dashboard">
+                    <h3>Unidades del Curso</h3>
+                    <div id="rejillaModulos" class="rejilla-modulos">
+                        <!-- Se genera dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista de módulo (se genera dinámicamente) -->
+            <div id="vistaPrincipal" class="vista-principal">
+                <!-- Contenido de módulo -->
+            </div>
+
+            <!-- Vista de logros (inicialmente oculta) -->
+            <div id="vistaLogros" class="vista-logros oculta">
+                <div class="encabezado-logros">
+                    <h2>🏆 Mis Logros</h2>
+                    <button id="botonVolverLogros" class="boton-volver">← Volver</button>
+                </div>
+
+                <div class="estadisticas-logros">
+                    <div class="barra-logros-contenedor">
+                        <div class="etiqueta-logros">Insignias Desbloqueadas</div>
+                        <div class="barra-progreso">
+                            <div id="barraLogros" class="barra-relleno"></div>
+                        </div>
+                        <div class="porcentaje-progreso"><span id="porcentajeLogros">0</span>%</div>
+                    </div>
+                </div>
+
+                <div id="rejillaInsignias" class="rejilla-insignias">
+                    <!-- Se genera dinámicamente -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- PANEL DE ADMINISTRACIÓN (OCULTO) -->
+    <div id="modalAdmin" class="modal-admin oculta">
+        <div class="contenedor-admin">
+            <!-- Login Admin -->
+            <div id="loginAdmin" class="login-admin">
+                <button id="cerrarLoginAdmin" class="boton-cerrar-modal">×</button>
+                <div class="header-login-admin">
+                    <div class="icono-admin">🔐</div>
+                    <h2>Panel de Administración</h2>
+                    <p>Acceso restringido para el profesor</p>
+                </div>
+                <div class="form-login-admin">
+                    <label for="passwordAdmin">Contraseña de administrador:</label>
+                    <input type="password" id="passwordAdmin" placeholder="Ingrese la contraseña" autocomplete="off">
+                    <button id="btnLoginAdmin" class="boton-login-admin">Acceder</button>
+                    <p class="error-login-admin oculta" id="errorLoginAdmin">❌ Contraseña incorrecta</p>
+                </div>
+            </div>
+
+            <!-- Panel Admin Principal -->
+            <div id="panelAdmin" class="panel-admin oculta">
+                <div class="header-panel-admin">
+                    <h2>🎓 Panel de Gestión de Contenido</h2>
+                    <div class="acciones-header-admin">
+                        <button id="cerrarPanelAdmin" class="boton-admin boton-cerrar-panel">✕ Cerrar Panel</button>
+                    </div>
+                </div>
+
+                <div class="tabs-admin">
+                    <button class="tab-admin activa" data-tab="modulos">📚 Módulos</button>
+                    <button class="tab-admin" data-tab="evaluaciones">🎮 Evaluaciones</button>
+                    <button class="tab-admin" data-tab="insignias">🏆 Insignias</button>
+                    <button class="tab-admin" data-tab="exportar">💾 Exportar JSON</button>
+                    <button class="tab-admin" data-tab="ayuda">❓ Ayuda</button>
+                </div>
+
+                <div class="contenido-tabs-admin">
+                    <!-- Tab Módulos -->
+                    <div id="tabModulos" class="contenido-tab-admin activo">
+                        <div class="toolbar-admin">
+                            <button id="btnAgregarModulo" class="boton-admin boton-agregar">➕ Agregar Módulo</button>
+                        </div>
+                        <div id="listaModulosAdmin" class="lista-modulos-admin">
+                            <!-- Se genera dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Tab Evaluaciones -->
+                    <div id="tabEvaluaciones" class="contenido-tab-admin">
+                        <div class="selector-modulo-eval">
+                            <label>Seleccionar módulo:</label>
+                            <select id="selectorModuloEval" class="select-admin">
+                                <option value="">-- Seleccione un módulo --</option>
+                            </select>
+                        </div>
+                        <div id="editorEvaluacion" class="editor-evaluacion-admin">
+                            <p class="texto-placeholder">👈 Selecciona un módulo para editar su evaluación</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab Insignias -->
+                    <div id="tabInsignias" class="contenido-tab-admin">
+                        <div class="toolbar-admin">
+                            <button id="btnAgregarInsignia" class="boton-admin boton-agregar">➕ Agregar Insignia</button>
+                        </div>
+                        <div id="listaInsigniasAdmin" class="lista-insignias-admin">
+                            <!-- Se genera dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Tab Exportar JSON -->
+                    <div id="tabExportar" class="contenido-tab-admin">
+                        <div class="exportar-container-mejorado">
+                            <h3>💾 Exportar Configuración y Publicar Cambios</h3>
+                            <p class="intro-exportar">Esta sección te permite descargar toda la configuración de la plataforma en un archivo JSON y publicar los cambios en producción.</p>
+                            
+                            <!-- Tarjeta de Exportar -->
+                            <div class="tarjeta-exportar-principal">
+                                <div class="icono-tarjeta-grande">📥</div>
+                                <h4>Descargar Configuración Actual</h4>
+                                <p class="descripcion-accion">Al hacer clic en el botón, se descargará un archivo JSON con <strong>toda la configuración actual</strong> de la plataforma.</p>
+                                
+                                <div class="grid-incluye-no-incluye">
+                                    <div class="que-incluye">
+                                        <strong>✅ ¿Qué incluye el archivo?</strong>
+                                        <ul>
+                                            <li>Todos los módulos (títulos, iconos, contenido)</li>
+                                            <li>Todas las secciones de cada módulo</li>
+                                            <li>Todas las evaluaciones con sus preguntas</li>
+                                            <li>Configuración de insignias</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="que-no-incluye">
+                                        <strong>⚠️ NO incluye:</strong>
+                                        <ul>
+                                            <li>Las imágenes (solo referencias a nombres de archivo)</li>
+                                            <li>Progreso de los estudiantes</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <button id="btnExportarJSON" class="boton-admin boton-exportar-grande">📥 Exportar JSON</button>
+                            </div>
+                            
+                            <!-- Credenciales de Acceso -->
+                            <div class="credenciales-acceso">
+                                <h4>🔐 Credenciales de Acceso a las Plataformas</h4>
+                                <p class="intro-credenciales">Para publicar cambios necesitas acceder a GitHub y Vercel. Ambas plataformas están vinculadas con la misma cuenta de Google.</p>
+                                
+                                <div class="tarjeta-credencial">
+                                    <div class="icono-credencial">📧</div>
+                                    <div class="info-credencial">
+                                        <strong>Cuenta de Google</strong>
+                                        <div class="dato-credencial">
+                                            <span class="label-credencial">Email:</span>
+                                            <code class="valor-credencial">proyectoteoriasist@gmail.com</code>
+                                        </div>
+                                        <div class="dato-credencial">
+                                            <span class="label-credencial">Contraseña:</span>
+                                            <code class="valor-credencial">PlataformaTSUADE#1</code>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="links-plataformas">
+                                    <a href="https://github.com/login" target="_blank" class="link-plataforma link-github">
+                                        <span class="icono-link">🐙</span>
+                                        <div class="info-link">
+                                            <strong>GitHub</strong>
+                                            <small>Repositorio del proyecto</small>
+                                        </div>
+                                        <span class="flecha-link">→</span>
+                                    </a>
+                                    <a href="https://vercel.com/login" target="_blank" class="link-plataforma link-vercel">
+                                        <span class="icono-link">▲</span>
+                                        <div class="info-link">
+                                            <strong>Vercel</strong>
+                                            <small>Hosting de la plataforma</small>
+                                        </div>
+                                        <span class="flecha-link">→</span>
+                                    </a>
+                                </div>
+                                
+                                <div class="nota-autenticacion">
+                                    <strong>💡 Importante:</strong> En ambas plataformas, usa la opción <strong>"Continuar con Google"</strong> e inicia sesión con la cuenta indicada arriba.
+                                </div>
+                            </div>
+                            
+                            <!-- Guía de Deploy -->
+                            <div class="guia-deploy-completa">
+                                <h4>🚀 Guía Paso a Paso: Publicar Cambios en Producción</h4>
+                                <p class="intro-guia">Sigue estos pasos en orden para que los cambios que realizaste en el panel admin se reflejen en la plataforma online.</p>
+                                
+                                <div class="pasos-deploy">
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">1</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Realiza todos tus cambios en el Panel Admin</strong>
+                                            <p>Edita módulos, secciones, evaluaciones e insignias desde las pestañas correspondientes. Los cambios se guardan automáticamente en tu navegador mientras trabajas.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">2</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Exporta el archivo JSON</strong>
+                                            <p>Haz clic en el botón <strong>"📥 Exportar JSON"</strong> de arriba. Se descargará un archivo llamado <code>contenido-admin-exportado.json</code> en tu computadora.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">3</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Ingresa a GitHub</strong>
+                                            <p>Ve a <a href="https://github.com/login" target="_blank">github.com/login</a> → Click en <strong>"Sign in with Google"</strong> → Ingresa con <code>proyectoteoriasist@gmail.com</code></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">4</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Navega al repositorio del proyecto</strong>
+                                            <p>Una vez logueado, verás el repositorio <strong>"miayudante-teoriasistemas"</strong> en tu lista. Haz clic para entrar.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">5</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Sube el archivo JSON</strong>
+                                            <p>En la raíz del repositorio, busca el archivo <code>contenido-teorico.json</code>. Haz clic en él → Click en el ícono de lápiz (✏️) para editar → Borra todo el contenido → Abre el archivo descargado con un editor de texto → Copia todo y pégalo → Haz scroll abajo y click en <strong>"Commit changes"</strong>.</p>
+                                            <p class="alternativa-paso"><strong>Alternativa más fácil:</strong> Click en "Add file" → "Upload files" → Arrastra el archivo JSON descargado → "Commit changes" (esto reemplazará el archivo anterior).</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">6</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>Vercel detecta los cambios automáticamente</strong>
+                                            <p>Al hacer commit en GitHub, Vercel recibe una notificación y automáticamente re-construye el sitio. <strong>No necesitas hacer nada en Vercel.</strong> Este proceso toma aproximadamente 1-2 minutos.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="paso-deploy">
+                                        <div class="numero-paso-deploy">7</div>
+                                        <div class="contenido-paso-deploy">
+                                            <strong>¡Verifica los cambios en producción!</strong>
+                                            <p>Espera 2 minutos y recarga la página de la plataforma. Los cambios deberían estar visibles para todos los estudiantes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sección de Imágenes -->
+                            <div class="seccion-imagenes">
+                                <h4>🖼️ Manejo de Imágenes</h4>
+                                <p class="intro-imagenes">Las imágenes requieren un paso adicional ya que no se incluyen en el archivo JSON.</p>
+                                
+                                <div class="grid-imagenes">
+                                    <div class="info-imagenes">
+                                        <strong>📁 ¿Dónde van las imágenes?</strong>
+                                        <p>Las imágenes deben estar en la carpeta <code>/imagenes</code> del repositorio en GitHub.</p>
+                                        
+                                        <strong>📝 ¿Cómo nombrar las imágenes?</strong>
+                                        <ul>
+                                            <li>Usa nombres descriptivos: <code>diagrama-sistemas.png</code></li>
+                                            <li>Evita caracteres especiales: ñ, acentos, símbolos</li>
+                                            <li>Puedes usar espacios o guiones</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="pasos-imagenes">
+                                        <strong>🔄 Pasos para agregar una imagen nueva:</strong>
+                                        <ol>
+                                            <li>Prepara tu imagen (PNG o JPG recomendado)</li>
+                                            <li>En GitHub, navega a la carpeta <code>/imagenes</code></li>
+                                            <li>Click en "Add file" → "Upload files"</li>
+                                            <li>Arrastra tu imagen y haz commit</li>
+                                            <li>En el editor del panel admin, usa <strong>"🖼️ Imagen"</strong> desde la galería</li>
+                                            <li>Escribe el nombre exacto: <code>mi-imagen.png</code></li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                
+                                <div class="nota-imagenes">
+                                    <strong>💡 Importante:</strong> Las imágenes NO se incluyen en el JSON exportado. Solo se guarda la referencia al nombre del archivo. 
+                                    Asegúrate de subir las imágenes a GitHub <strong>antes</strong> de referenciarlas en el contenido.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Ayuda -->
+                    <div id="tabAyuda" class="contenido-tab-admin">
+                        <div class="ayuda-admin-mejorada">
+                            <h3>📖 Guía Completa del Panel de Administración</h3>
+                            <p class="subtitulo-ayuda">Todo lo que necesitas saber para gestionar la plataforma sin escribir código</p>
+                            
+                            <div class="grid-ayuda">
+                                <!-- Columna 1 -->
+                                <div class="columna-ayuda">
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">🔐</span>
+                                            <h4>Acceso al Panel</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <div class="metodo-acceso">
+                                                <strong>Método 1 - Atajo de teclado:</strong>
+                                                <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd></p>
+                                            </div>
+                                            <div class="metodo-acceso">
+                                                <strong>Método 2 - URL directa:</strong>
+                                                <p>Agrega <code>?admin=true</code> a la URL</p>
+                                            </div>
+                                            <div class="metodo-acceso">
+                                                <strong>Contraseña:</strong>
+                                                <p><code>uade2025</code></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">📚</span>
+                                            <h4>Editar Módulos</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <p><strong>Abrir editor:</strong> Click en <span class="boton-ejemplo">✏️ Editar</span></p>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>🎨 Toolbar de Formato:</strong>
+                                                <ul>
+                                                    <li><strong>B / I / U</strong> → Negrita, Cursiva, Subrayado</li>
+                                                    <li><strong>🎨 Color</strong> → Cambia el color del texto</li>
+                                                    <li><strong>📏 Tamaño</strong> → Cambia el tamaño de la fuente</li>
+                                                    <li><strong>⬅ ⬌ ➡</strong> → Alinear izquierda, centro, derecha</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>📝 Estructura:</strong>
+                                                <ul>
+                                                    <li><strong>H2</strong> → Título principal (crea nueva sección)</li>
+                                                    <li><strong>H3</strong> → Subtítulo dentro de la sección</li>
+                                                    <li><strong>P</strong> → Convertir a párrafo normal</li>
+                                                    <li><strong>≡ / 1.</strong> → Listas con viñetas / numeradas</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>🎨 Galería de Elementos:</strong>
+                                                <p>Click en <span class="boton-ejemplo">🎨 Insertar Elemento</span> para ver todos los estilos disponibles con preview:</p>
+                                                <ul>
+                                                    <li>Cuadros destacados (morado, verde, amarillo)</li>
+                                                    <li>Tablas comparativas</li>
+                                                    <li>Grids de conceptos</li>
+                                                    <li>Pasos numerados</li>
+                                                    <li>Cajas de ejemplo, alerta, nota</li>
+                                                    <li>Y muchos más...</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <div class="subseccion-ayuda">
+                                                <strong>⬇️ Espacio entre elementos:</strong>
+                                                <p>Si no puedes hacer click entre dos elementos, usa el botón <span class="boton-ejemplo">⬇️</span> para insertar un espacio editable.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">📋</span>
+                                            <h4>Navegación por Secciones</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <p>En el panel lateral izquierdo verás todas las secciones del módulo.</p>
+                                            <ul>
+                                                <li><strong>Click en sección</strong> → Carga su contenido en el editor</li>
+                                                <li><strong>+ Agregar Sección Nueva</strong> → Crea una nueva sección vacía</li>
+                                                <li>Las secciones se crean automáticamente con cada <strong>H2</strong></li>
+                                                <li>Los cambios se guardan al cambiar de sección</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                
+                                <!-- Columna 2 -->
+                                <div class="columna-ayuda">
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">🎮</span>
+                                            <h4>Configurar Evaluaciones</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <p><strong>Paso 1:</strong> Al editar un módulo, selecciona el tipo de evaluación en el dropdown "Evaluación Vinculada"</p>
+                                            <p><strong>Paso 2:</strong> Click en <span class="boton-ejemplo">⚙️ Configurar Preguntas</span></p>
+                                            
+                                            <div class="tipos-evaluacion">
+                                                <div class="tipo-eval">
+                                                    <strong>🏰 Escape Room</strong>
+                                                    <p>Habitaciones con preguntas. El estudiante debe responder correctamente para avanzar a la siguiente habitación.</p>
+                                                </div>
+                                                <div class="tipo-eval">
+                                                    <strong>🔤 Pasapalabra</strong>
+                                                    <p>Letras del abecedario con definiciones. El estudiante debe identificar la palabra correcta.</p>
+                                                </div>
+                                                <div class="tipo-eval">
+                                                    <strong>⏱️ Quiz con Tiempo</strong>
+                                                    <p>Preguntas con tiempo límite. Más rápido = más puntos.</p>
+                                                </div>
+                                                <div class="tipo-eval">
+                                                    <strong>🔗 Conectar Conceptos</strong>
+                                                    <p>Emparejar conceptos de la columna izquierda con sus definiciones de la derecha.</p>
+                                                </div>
+                                                <div class="tipo-eval">
+                                                    <strong>📋 Casos Prácticos</strong>
+                                                    <p>Situaciones reales con múltiples preguntas de análisis.</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <p class="nota-eval">💡 Todas las evaluaciones se aprueban con 60% o más. Puedes cambiar este porcentaje en la configuración.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">🏆</span>
+                                            <h4>Gestionar Insignias</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <p>Cada módulo tiene una insignia que se desbloquea al aprobar su evaluación.</p>
+                                            <ul>
+                                                <li><strong>Ver insignia:</strong> En el editor de módulo, panel lateral</li>
+                                                <li><strong>Editar:</strong> Click en <span class="boton-ejemplo">✏️ Editar Insignia</span></li>
+                                                <li><strong>Personalizar:</strong> Cambia el emoji, nombre y descripción</li>
+                                            </ul>
+                                            <p class="nota-eval">💡 Las insignias se crean automáticamente al crear un nuevo módulo.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">🖼️</span>
+                                            <h4>Agregar Imágenes</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <ol>
+                                                <li>Sube la imagen a la carpeta <code>/imagenes</code> en GitHub</li>
+                                                <li>En el editor, click en <span class="boton-ejemplo">🎨 Insertar Elemento</span></li>
+                                                <li>Click en <strong>"🖼️ Insertar Imagen"</strong></li>
+                                                <li>Escribe el nombre exacto del archivo</li>
+                                            </ol>
+                                            <p class="nota-eval">⚠️ Las imágenes NO se guardan en el JSON. Deben existir en el repositorio.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="seccion-ayuda-mejorada alerta-importante-mejorada">
+                                        <div class="header-seccion-ayuda">
+                                            <span class="icono-seccion">⚠️</span>
+                                            <h4>Recordatorios Importantes</h4>
+                                        </div>
+                                        <div class="contenido-seccion-ayuda">
+                                            <ul>
+                                                <li>✅ Los cambios se guardan automáticamente en tu navegador</li>
+                                                <li>✅ Para publicar en producción, exporta el JSON y súbelo a GitHub</li>
+                                                <li>✅ Exporta regularmente como backup de seguridad</li>
+                                                <li>✅ No necesitas saber HTML, CSS ni código</li>
+                                                <li>⚠️ Si limpias el caché del navegador, perderás cambios no exportados</li>
+                                                <li>⚠️ Otro navegador = datos independientes</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
