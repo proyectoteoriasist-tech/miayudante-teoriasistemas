@@ -190,7 +190,8 @@ let estadoGlobal = {
     nombreUsuario: "",
     moduloActual: 0, // Empezar en el módulo de bienvenida
     seccionActual: 0, // Índice de la sección actual en el módulo
-    modulosCompletados: [],
+    modulosCompletados: [],    // Módulos que aprobaron la evaluación
+    modulosIniciados: [],      // Módulos que el usuario ha visitado (estado "en curso")
     seccionesCompletadas: {}, // {moduloId: [indices de secciones completadas]}
     insigniasDesbloqueadas: [],
     modoNoche: false,
@@ -408,6 +409,7 @@ function guardarEstado() {
         localStorage.setItem("estadoTeoriaSistemas", JSON.stringify(estadoGlobal));
         console.log('💾 Estado guardado:', {
             modulosCompletados: estadoGlobal.modulosCompletados,
+            modulosIniciados: estadoGlobal.modulosIniciados,
             insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0
         });
     } catch (e) {
@@ -424,6 +426,7 @@ function cargarEstado() {
         estadoGlobal = JSON.parse(estado);
         console.log('✅ Estado cargado:', {
             modulosCompletados: estadoGlobal.modulosCompletados,
+            modulosIniciados: estadoGlobal.modulosIniciados,
             insignias: estadoGlobal.insigniasDesbloqueadas?.length || 0,
             nombreUsuario: estadoGlobal.nombreUsuario
         });
@@ -439,6 +442,10 @@ function cargarEstado() {
         }
         if (!estadoGlobal.modulosExpandidos) {
             estadoGlobal.modulosExpandidos = {};
+        }
+        // Asegurar que modulosIniciados exista (para usuarios existentes)
+        if (!estadoGlobal.modulosIniciados) {
+            estadoGlobal.modulosIniciados = [];
         }
         
         // Migrar notas antiguas (formato objeto) al nuevo formato (HTML)
@@ -482,6 +489,7 @@ function confirmarReinicio() {
         moduloActual: 0,
         seccionActual: 0,
         modulosCompletados: [],
+        modulosIniciados: [],  // También reiniciar módulos iniciados
         seccionesCompletadas: {},
         insigniasDesbloqueadas: [],
         modoNoche: estadoGlobal.modoNoche,
@@ -674,18 +682,18 @@ function actualizarSidebar() {
         
         // Determinar estado visual del módulo
         const completado = estadoGlobal.modulosCompletados.includes(modulo.id);
+        const iniciado = estadoGlobal.modulosIniciados && estadoGlobal.modulosIniciados.includes(modulo.id);
         let estado;
         
         if (completado) {
             estado = "🟢";
             modulo.estado = "completado";
-        } else if (modulo.estado === "en-curso" || esModuloActual) {
+        } else if (iniciado || esModuloActual) {
             estado = "🟡";
-            if (!completado) {
-                modulo.estado = "en-curso";
-            }
+            modulo.estado = "en-curso";
         } else {
             estado = "⚪";
+            modulo.estado = "no-iniciado";
         }
 
         // Mostrar título completo, sin truncar
@@ -744,6 +752,13 @@ function actualizarSidebar() {
             // SIEMPRE navegar, incluso si ya estamos en ese módulo (para que funcione desde dashboard)
             estadoGlobal.moduloActual = modulo.id;
             estadoGlobal.seccionActual = 0; // Resetear a primera sección al cambiar de módulo
+            
+            // Marcar módulo como iniciado si no lo está ya
+            if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
+                estadoGlobal.modulosIniciados.push(modulo.id);
+                console.log('📖 Módulo marcado como iniciado:', modulo.id);
+            }
+            
             guardarEstado();
             mostrarVistaPrincipal();
             cerrarSidebar();
@@ -827,7 +842,7 @@ function actualizarDashboard() {
         unidades.forEach(modulo => {
             const tarjeta = document.createElement("div");
             const completado = estadoGlobal.modulosCompletados.includes(modulo.id);
-            const iniciado = modulo.estado === "en-curso" && !completado;
+            const iniciado = estadoGlobal.modulosIniciados && estadoGlobal.modulosIniciados.includes(modulo.id) && !completado;
             
             let claseEstado = 'sin-iniciar';
             let textoEstado = 'No iniciado';
@@ -852,6 +867,13 @@ function actualizarDashboard() {
             tarjeta.addEventListener("click", () => {
                 estadoGlobal.moduloActual = modulo.id;
                 estadoGlobal.seccionActual = 0;
+                
+                // Marcar módulo como iniciado si no lo está ya
+                if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
+                    estadoGlobal.modulosIniciados.push(modulo.id);
+                    console.log('📖 Módulo marcado como iniciado:', modulo.id);
+                }
+                
                 guardarEstado();
                 mostrarVistaPrincipal();
                 cerrarSidebar();
@@ -1136,8 +1158,21 @@ function actualizarVistaPrincipal() {
     const modulo = MODULOS.find(m => m.id === estadoGlobal.moduloActual);
     if (!modulo) return;
 
+    // Marcar módulo como iniciado si no está ya
+    if (!estadoGlobal.modulosIniciados.includes(modulo.id) && !estadoGlobal.modulosCompletados.includes(modulo.id)) {
+        estadoGlobal.modulosIniciados.push(modulo.id);
+        guardarEstado();
+        console.log('📖 Módulo marcado como iniciado:', modulo.id);
+    }
+
     // Actualizar estado visual
-    modulo.estado = estadoGlobal.modulosCompletados.includes(modulo.id) ? "completado" : "en-curso";
+    if (estadoGlobal.modulosCompletados.includes(modulo.id)) {
+        modulo.estado = "completado";
+    } else if (estadoGlobal.modulosIniciados.includes(modulo.id)) {
+        modulo.estado = "en-curso";
+    } else {
+        modulo.estado = "no-iniciado";
+    }
 
     const vistaPrincipal = document.getElementById("vistaPrincipal");
     const completado = estadoGlobal.modulosCompletados.includes(modulo.id);
@@ -2157,7 +2192,11 @@ let estadoEvaluacion = {
 // Obtener mejor puntaje guardado
 function obtenerMejorPuntaje(moduloId) {
     const mejores = JSON.parse(localStorage.getItem('mejoresPuntajes') || '{}');
-    return mejores[moduloId] || null;
+    const puntaje = mejores[moduloId] || null;
+    if (puntaje) {
+        console.log(`🏆 Mejor puntaje módulo ${moduloId}:`, puntaje);
+    }
+    return puntaje;
 }
 
 // Guardar mejor puntaje
@@ -2168,6 +2207,9 @@ function guardarMejorPuntaje(moduloId, porcentaje, correctas, total) {
     if (!actual || porcentaje > actual.porcentaje) {
         mejores[moduloId] = { porcentaje, correctas, total, fecha: new Date().toLocaleDateString() };
         localStorage.setItem('mejoresPuntajes', JSON.stringify(mejores));
+        console.log(`🎯 Nuevo mejor puntaje guardado para módulo ${moduloId}:`, mejores[moduloId]);
+    } else {
+        console.log(`📊 Puntaje ${porcentaje}% no supera el mejor (${actual.porcentaje}%)`);
     }
 }
 
@@ -4406,11 +4448,13 @@ function siguientePreguntaCaso(moduloId) {
 
 function mostrarResultadosCasos(moduloId) {
     const evaluacion = obtenerEvaluacionModulo(moduloId);
-    const porcentaje = Math.round((estadoCasos.correctas / estadoCasos.totalPreguntas) * 100);
+    const correctas = estadoCasos.correctas;
+    const total = estadoCasos.totalPreguntas;
+    const porcentaje = Math.round((correctas / total) * 100);
     const aprobado = porcentaje >= evaluacion.aprobacion;
     
     // Guardar mejor puntaje
-    guardarMejorPuntaje(moduloId, porcentaje);
+    guardarMejorPuntaje(moduloId, porcentaje, correctas, total);
     
     // Marcar módulo si aprobó y otorgar insignia
     if (aprobado) {
