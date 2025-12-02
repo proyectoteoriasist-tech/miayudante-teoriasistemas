@@ -77,13 +77,31 @@ let CONTENIDO_EVALUACION = {};
 // Función para cargar el contenido desde el archivo JSON
 async function cargarContenidoTeorico() {
     try {
-        const response = await fetch('contenido-teorico.json');
+        // Cache-busting: agregar timestamp para evitar que el navegador use versión cacheada
+        const cacheBuster = `?v=${Date.now()}`;
+        const response = await fetch(`contenido-teorico.json${cacheBuster}`, {
+            cache: 'no-store',  // Forzar obtener siempre del servidor
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
+        });
         if (!response.ok) {
             throw new Error('No se pudo cargar el contenido teórico');
         }
         const datos = await response.json();
         CONTENIDO_TEORICO = datos.modulos;
         CONTENIDO_EVALUACION = datos.evaluaciones;
+        
+        // Si el JSON tiene la lista de módulos, usarla en lugar de la hardcodeada
+        if (datos.listaModulos && Array.isArray(datos.listaModulos) && datos.listaModulos.length > 0) {
+            // Agregar la propiedad 'estado' que no se exporta pero es necesaria para la app
+            MODULOS = datos.listaModulos.map(m => ({
+                ...m,
+                estado: 'no-iniciado'
+            }));
+            console.log('✅ Lista de módulos cargada desde JSON:', MODULOS.length, 'módulos');
+        }
+        
         console.log('✅ Contenido teórico cargado exitosamente');
         return true;
     } catch (error) {
@@ -5056,15 +5074,28 @@ function establecerEvaluacionAdmin(moduloId, evaluacion) {
 }
 
 function cargarDatosAdmin() {
+    console.log('🔄 CARGANDO DATOS ADMIN...');
+    
     // Cargar desde localStorage si existe, sino desde las variables globales
     const datosGuardados = localStorage.getItem('adminContentData');
+    console.log('localStorage existe:', !!datosGuardados);
     
     // Siempre empezar con los datos originales del JSON
     const modulosBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_TEORICO)));
     const evaluacionesBase = normalizarClaves(JSON.parse(JSON.stringify(CONTENIDO_EVALUACION)));
     
+    console.log('Datos base del JSON:', {
+        modulosKeys: Object.keys(modulosBase),
+        evaluacionesKeys: Object.keys(evaluacionesBase)
+    });
+    
     if (datosGuardados) {
         const datos = JSON.parse(datosGuardados);
+        console.log('Datos de localStorage:', {
+            modulosKeys: Object.keys(datos.modulos || {}),
+            evaluacionesKeys: Object.keys(datos.evaluaciones || {}),
+            listaModulosLength: (datos.listaModulos || []).length
+        });
         
         // Merge: datos guardados sobrescriben los originales, pero no eliminan lo que falta
         estadoAdmin.modulosEditados = { ...modulosBase, ...normalizarClaves(datos.modulos || {}) };
@@ -5073,15 +5104,22 @@ function cargarDatosAdmin() {
         // Cargar estructura de módulos si existe
         if (datos.listaModulos && datos.listaModulos.length > 0) {
             MODULOS = datos.listaModulos;
+            console.log('Lista de módulos cargada desde localStorage:', MODULOS.length);
         }
         
         // Aplicar los datos editados a las variables globales para que la app los use
         CONTENIDO_TEORICO = { ...estadoAdmin.modulosEditados };
         CONTENIDO_EVALUACION = { ...estadoAdmin.evaluacionesEditadas };
     } else {
+        console.log('No hay localStorage, usando datos base del JSON');
         estadoAdmin.modulosEditados = modulosBase;
         estadoAdmin.evaluacionesEditadas = evaluacionesBase;
     }
+    
+    console.log('✅ estadoAdmin cargado:', {
+        modulosEditadosKeys: Object.keys(estadoAdmin.modulosEditados),
+        evaluacionesEditadasKeys: Object.keys(estadoAdmin.evaluacionesEditadas)
+    });
     
     renderizarListaModulosAdmin();
     renderizarListaInsigniasAdmin();
@@ -5094,7 +5132,21 @@ function guardarDatosAdmin() {
         evaluaciones: estadoAdmin.evaluacionesEditadas,
         listaModulos: MODULOS  // Guardar también la estructura de módulos
     };
+    
+    // DEBUG: Mostrar qué se está guardando
+    console.log('💾 GUARDANDO EN LOCALSTORAGE:', {
+        cantidadModulos: Object.keys(datos.modulos || {}).length,
+        cantidadEvaluaciones: Object.keys(datos.evaluaciones || {}).length,
+        cantidadListaModulos: (datos.listaModulos || []).length,
+        modulosKeys: Object.keys(datos.modulos || {}),
+        evaluacionesKeys: Object.keys(datos.evaluaciones || {})
+    });
+    
     localStorage.setItem('adminContentData', JSON.stringify(datos));
+    
+    // Verificar que se guardó correctamente
+    const verificacion = localStorage.getItem('adminContentData');
+    console.log('✓ Verificación localStorage:', verificacion ? 'OK - ' + verificacion.length + ' caracteres' : 'ERROR');
     
     // Actualizar referencias globales para que la app use los datos editados inmediatamente
     CONTENIDO_TEORICO = { ...estadoAdmin.modulosEditados };
@@ -5937,6 +5989,7 @@ function agregarHabitacion(moduloId) {
         narrativa_exito: "¡Excelente!",
         preguntas: []
     });
+    marcarCambioEvaluacion();
     cargarEditorEvaluacion();
 }
 
@@ -5944,6 +5997,7 @@ function eliminarHabitacion(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta habitación?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.habitaciones.splice(index, 1);
+        marcarCambioEvaluacion();
         cargarEditorEvaluacion();
         mostrarNotificacionInfo('🗑️ Habitación eliminada');
     });
@@ -5961,6 +6015,7 @@ function agregarLetraPasapalabra(moduloId) {
         correcta: 0,
         tipo: "empieza"
     });
+    marcarCambioEvaluacion();
     cargarEditorEvaluacion();
 }
 
@@ -5968,6 +6023,7 @@ function eliminarLetraPasapalabra(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta letra?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.letras.splice(index, 1);
+        marcarCambioEvaluacion();
         cargarEditorEvaluacion();
         mostrarNotificacionInfo('🗑️ Letra eliminada');
     });
@@ -5982,6 +6038,7 @@ function agregarPreguntaQuiz(moduloId) {
         tiempo: 15,
         puntos: 100
     });
+    marcarCambioEvaluacion();
     cargarEditorEvaluacion();
 }
 
@@ -5989,6 +6046,7 @@ function eliminarPreguntaQuiz(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta pregunta?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.preguntas.splice(index, 1);
+        marcarCambioEvaluacion();
         cargarEditorEvaluacion();
         mostrarNotificacionInfo('🗑️ Pregunta eliminada');
     });
@@ -6000,6 +6058,7 @@ function agregarRondaConectar(moduloId) {
         titulo: "Nueva ronda",
         pares: []
     });
+    marcarCambioEvaluacion();
     cargarEditorEvaluacion();
 }
 
@@ -6007,6 +6066,7 @@ function eliminarRondaConectar(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta ronda?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.rondas.splice(index, 1);
+        marcarCambioEvaluacion();
         cargarEditorEvaluacion();
         mostrarNotificacionInfo('🗑️ Ronda eliminada');
     });
@@ -6019,6 +6079,7 @@ function agregarCasoPractico(moduloId) {
         narrativa: "Descripción del caso...",
         preguntas: []
     });
+    marcarCambioEvaluacion();
     cargarEditorEvaluacion();
 }
 
@@ -6026,6 +6087,7 @@ function eliminarCasoPractico(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar este caso?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.casos.splice(index, 1);
+        marcarCambioEvaluacion();
         cargarEditorEvaluacion();
         mostrarNotificacionInfo('🗑️ Caso eliminado');
     });
@@ -6216,6 +6278,9 @@ function inicializarEditorVisual(moduloId) {
         editor.innerHTML = secciones[0];
     }
     
+    // Envolver imágenes existentes con controles de redimensionamiento
+    setTimeout(() => envolverImagenesEditorModulo(), 100);
+    
     // Auto-ocultar la ayuda después de 5 segundos
     setTimeout(() => {
         const ayuda = document.getElementById('ayudaEditorTemporal');
@@ -6272,8 +6337,44 @@ function inicializarEditorVisual(moduloId) {
 }
 
 function formatearTextoEditor(comando) {
+    // Verificar si hay una imagen seleccionada para comandos de alineación
+    if (comando === 'justifyLeft' || comando === 'justifyCenter' || comando === 'justifyRight') {
+        const imagenSeleccionada = document.querySelector('.imagen-wrapper-redimensionable.seleccionada');
+        if (imagenSeleccionada) {
+            alinearImagenEditor(imagenSeleccionada, comando);
+            return;
+        }
+    }
+    
     document.execCommand(comando, false, null);
     document.getElementById('editorContenidoVisual').focus();
+}
+
+// Alinear imagen en el editor de módulos
+function alinearImagenEditor(wrapper, comando) {
+    // Limpiar estilos de alineación anteriores
+    wrapper.style.marginLeft = '';
+    wrapper.style.marginRight = '';
+    wrapper.style.float = '';
+    
+    switch (comando) {
+        case 'justifyLeft':
+            wrapper.style.marginLeft = '0';
+            wrapper.style.marginRight = 'auto';
+            break;
+        case 'justifyCenter':
+            wrapper.style.marginLeft = 'auto';
+            wrapper.style.marginRight = 'auto';
+            break;
+        case 'justifyRight':
+            wrapper.style.marginLeft = 'auto';
+            wrapper.style.marginRight = '0';
+            break;
+    }
+    
+    marcarCambioModulo();
+    actualizarVistaPreviewSecciones();
+    mostrarNotificacion('📐 Imagen alineada');
 }
 
 function cambiarColorTexto(color) {
@@ -6723,22 +6824,242 @@ function confirmarInsertarImagen() {
         return;
     }
     
-    // Enfocar el editor antes de insertar
     const editor = document.getElementById('editorContenidoVisual');
     if (editor) {
-        editor.focus();
+        // Crear wrapper redimensionable
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = 'imagen-wrapper-redimensionable imagen-modulo-redimensionable';
+        imgWrapper.contentEditable = 'false';
+        imgWrapper.style.width = '100%';
+        imgWrapper.style.maxWidth = '600px';
         
-        const html = `
-            <p><br></p>
-            <img src="imagenes/${nombreImagen}" alt="${nombreImagen}" style="max-width: 100%; border-radius: 12px; margin: 1rem 0;">
-            <p class="espacio-editable"><br></p>
+        // Crear imagen
+        const imgElement = document.createElement('img');
+        imgElement.src = `imagenes/${nombreImagen}`;
+        imgElement.alt = nombreImagen;
+        imgElement.className = 'imagen-en-editor';
+        imgElement.draggable = false;
+        
+        // Crear controles de redimensionamiento con handles en las esquinas
+        const controles = document.createElement('div');
+        controles.className = 'controles-imagen';
+        controles.innerHTML = `
+            <div class="handle-resize handle-ne"></div>
+            <div class="handle-resize handle-se"></div>
+            <div class="handle-resize handle-sw"></div>
+            <div class="handle-resize handle-nw"></div>
         `;
-        document.execCommand('insertHTML', false, html);
+        
+        // Hacer el wrapper seleccionable y eliminable con backspace/delete
+        imgWrapper.setAttribute('tabindex', '0');
+        imgWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Remover selección de otras imágenes
+            document.querySelectorAll('.imagen-wrapper-redimensionable.seleccionada').forEach(w => {
+                w.classList.remove('seleccionada');
+            });
+            // Seleccionar esta imagen
+            this.classList.add('seleccionada');
+            this.focus();
+        });
+        
+        imgWrapper.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                this.remove();
+                actualizarVistaPreviewSecciones();
+                marcarCambioModulo();
+            }
+        });
+        
+        // Agregar funcionalidad de redimensionamiento por arrastre
+        agregarRedimensionamientoEditorModulo(imgWrapper, controles);
+        
+        // Ensamblar
+        imgWrapper.appendChild(imgElement);
+        imgWrapper.appendChild(controles);
+        
+        // Crear párrafos de espacio
+        const parrafoAntes = document.createElement('p');
+        parrafoAntes.innerHTML = '<br>';
+        const parrafoDespues = document.createElement('p');
+        parrafoDespues.className = 'espacio-editable';
+        parrafoDespues.innerHTML = '<br>';
+        
+        // Insertar en la posición del cursor o al final
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(parrafoDespues);
+            range.insertNode(imgWrapper);
+            range.insertNode(parrafoAntes);
+            range.setStartAfter(parrafoDespues);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else {
+            editor.appendChild(parrafoAntes);
+            editor.appendChild(imgWrapper);
+            editor.appendChild(parrafoDespues);
+        }
+        
         actualizarVistaPreviewSecciones();
-        mostrarNotificacion('🖼️ Imagen insertada');
+        marcarCambioModulo();
+        mostrarNotificacion('🖼️ Imagen insertada - Arrastra las esquinas para redimensionar');
     }
     
     cerrarModalInsertarImagen();
+}
+
+// Función para agregar redimensionamiento por arrastre en editor de módulos
+function agregarRedimensionamientoEditorModulo(wrapper, controles) {
+    const handles = controles.querySelectorAll('.handle-resize');
+    const editor = document.getElementById('editorContenidoVisual');
+    
+    handles.forEach(handle => {
+        handle.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const startX = e.clientX;
+            const startWidth = wrapper.offsetWidth;
+            const handleClass = this.className;
+            
+            // Prevenir selección de texto durante el arrastre
+            if (editor) {
+                editor.style.userSelect = 'none';
+            }
+            
+            function onMouseMove(e) {
+                e.preventDefault();
+                
+                let newWidth = startWidth;
+                let deltaX = 0;
+                
+                // Calcular cambio según la esquina desde la que se arrastra
+                if (handleClass.includes('handle-ne') || handleClass.includes('handle-se')) {
+                    // Esquinas derechas
+                    deltaX = e.clientX - startX;
+                    newWidth = startWidth + deltaX;
+                } else if (handleClass.includes('handle-nw') || handleClass.includes('handle-sw')) {
+                    // Esquinas izquierdas
+                    deltaX = startX - e.clientX;
+                    newWidth = startWidth + deltaX;
+                }
+                
+                // Limitar tamaño mínimo y máximo
+                const editorWidth = editor ? editor.offsetWidth : 800;
+                newWidth = Math.max(100, Math.min(newWidth, editorWidth - 20));
+                
+                // Aplicar nuevo tamaño
+                wrapper.style.width = newWidth + 'px';
+                wrapper.style.maxWidth = 'none'; // Permitir tamaño personalizado
+            }
+            
+            function onMouseUp(e) {
+                e.preventDefault();
+                
+                // Restaurar estado del editor
+                if (editor) {
+                    editor.style.userSelect = '';
+                }
+                
+                // Marcar cambios y actualizar
+                marcarCambioModulo();
+                actualizarVistaPreviewSecciones();
+                
+                // Remover listeners
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+}
+
+// Envolver imágenes existentes en el editor de módulos con controles de redimensionamiento
+function envolverImagenesEditorModulo() {
+    const editor = document.getElementById('editorContenidoVisual');
+    if (!editor) return;
+    
+    const imagenes = editor.querySelectorAll('img:not(.imagen-en-editor)');
+    
+    imagenes.forEach(img => {
+        // Si ya tiene wrapper, solo agregar funcionalidad
+        const wrapperExistente = img.closest('.imagen-wrapper-redimensionable');
+        if (wrapperExistente) {
+            const controles = wrapperExistente.querySelector('.controles-imagen');
+            if (controles) {
+                agregarRedimensionamientoEditorModulo(wrapperExistente, controles);
+            }
+            return;
+        }
+        
+        // Crear wrapper redimensionable
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = 'imagen-wrapper-redimensionable imagen-modulo-redimensionable';
+        imgWrapper.contentEditable = 'false';
+        
+        // Preservar el ancho si ya tiene estilo
+        const imgWidth = img.style.width || img.getAttribute('width');
+        if (imgWidth) {
+            imgWrapper.style.width = imgWidth;
+            imgWrapper.style.maxWidth = 'none';
+        } else {
+            imgWrapper.style.width = '100%';
+            imgWrapper.style.maxWidth = '600px';
+        }
+        
+        // Clonar imagen con clase correcta
+        const nuevaImg = document.createElement('img');
+        nuevaImg.src = img.src;
+        nuevaImg.alt = img.alt || '';
+        nuevaImg.className = 'imagen-en-editor';
+        nuevaImg.draggable = false;
+        
+        // Crear controles de redimensionamiento
+        const controles = document.createElement('div');
+        controles.className = 'controles-imagen';
+        controles.innerHTML = `
+            <div class="handle-resize handle-ne"></div>
+            <div class="handle-resize handle-se"></div>
+            <div class="handle-resize handle-sw"></div>
+            <div class="handle-resize handle-nw"></div>
+        `;
+        
+        // Hacer el wrapper seleccionable
+        imgWrapper.setAttribute('tabindex', '0');
+        imgWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('.imagen-wrapper-redimensionable.seleccionada').forEach(w => {
+                w.classList.remove('seleccionada');
+            });
+            this.classList.add('seleccionada');
+            this.focus();
+        });
+        
+        imgWrapper.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                this.remove();
+                actualizarVistaPreviewSecciones();
+                marcarCambioModulo();
+            }
+        });
+        
+        // Agregar funcionalidad de redimensionamiento
+        agregarRedimensionamientoEditorModulo(imgWrapper, controles);
+        
+        // Ensamblar
+        imgWrapper.appendChild(nuevaImg);
+        imgWrapper.appendChild(controles);
+        
+        // Reemplazar imagen original
+        img.parentNode.replaceChild(imgWrapper, img);
+    });
 }
 
 // ========== GALERÍA DE ELEMENTOS ==========
@@ -7347,6 +7668,9 @@ function navegarSeccionEditor(index) {
     editor.innerHTML = estadoAdmin.seccionesTemporales[index] || '<p>Sección vacía. Usa H2 para crear el título.</p>';
     editor.focus();
     
+    // Envolver imágenes existentes con controles de redimensionamiento
+    setTimeout(() => envolverImagenesEditorModulo(), 100);
+    
     // Actualizar la lista visual
     actualizarVistaPreviewSecciones();
     
@@ -7598,19 +7922,19 @@ function renderizarEditorEscapeRoomCompleto(moduloId, evaluacion) {
 function actualizarHabitacion(moduloId, habIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.habitaciones[habIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarPreguntaHab(moduloId, habIndex, pregIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.habitaciones[habIndex].preguntas[pregIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarOpcionHab(moduloId, habIndex, pregIndex, opIndex, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.habitaciones[habIndex].preguntas[pregIndex].opciones[opIndex] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function agregarHabitacionCompleta(moduloId) {
@@ -7624,6 +7948,7 @@ function agregarHabitacionCompleta(moduloId) {
         preguntas: []
     };
     evaluacion.habitaciones.push(nuevaHab);
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('🚪 Habitación agregada');
 }
@@ -7632,6 +7957,7 @@ function eliminarHabitacionCompleta(moduloId, habIndex) {
     mostrarModalConfirmacion('¿Eliminar esta habitación y todas sus preguntas?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.habitaciones.splice(habIndex, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Habitación eliminada');
     });
@@ -7646,6 +7972,7 @@ function agregarPreguntaHabitacion(moduloId, habIndex) {
         explicacion: "Explicación de la respuesta correcta"
     };
     evaluacion.habitaciones[habIndex].preguntas.push(nuevaPregunta);
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('❓ Pregunta agregada');
 }
@@ -7654,6 +7981,7 @@ function eliminarPreguntaHabitacion(moduloId, habIndex, pregIndex) {
     mostrarModalConfirmacion('¿Eliminar esta pregunta?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.habitaciones[habIndex].preguntas.splice(pregIndex, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Pregunta eliminada');
     });
@@ -7724,13 +8052,13 @@ function renderizarEditorPasapalabraCompleto(moduloId, evaluacion) {
 function actualizarLetra(moduloId, letraIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.letras[letraIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarOpcionLetra(moduloId, letraIndex, opIndex, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.letras[letraIndex].opciones[opIndex] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function agregarLetraPasapalabraCompleta(moduloId) {
@@ -7746,6 +8074,7 @@ function agregarLetraPasapalabraCompleta(moduloId) {
         tipo: "empieza",
         explicacion: ""
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('🔤 Letra agregada');
 }
@@ -7754,6 +8083,7 @@ function eliminarLetraPasapalabraCompleta(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta letra?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.letras.splice(index, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Letra eliminada');
     });
@@ -7821,13 +8151,13 @@ function renderizarEditorQuizCompleto(moduloId, evaluacion) {
 function actualizarPreguntaQuiz(moduloId, pregIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.preguntas[pregIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarOpcionQuiz(moduloId, pregIndex, opIndex, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.preguntas[pregIndex].opciones[opIndex] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function agregarPreguntaQuizCompleta(moduloId) {
@@ -7840,6 +8170,7 @@ function agregarPreguntaQuizCompleta(moduloId) {
         puntos: 100,
         explicacion: ""
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('❓ Pregunta agregada');
 }
@@ -7848,6 +8179,7 @@ function eliminarPreguntaQuizCompleta(moduloId, index) {
     mostrarModalConfirmacion('¿Eliminar esta pregunta?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.preguntas.splice(index, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Pregunta eliminada');
     });
@@ -7902,13 +8234,13 @@ function renderizarEditorConectarCompleto(moduloId, evaluacion) {
 function actualizarRonda(moduloId, rondaIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.rondas[rondaIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarPar(moduloId, rondaIndex, parIndex, lado, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.rondas[rondaIndex].pares[parIndex][lado] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function agregarRondaConectarCompleta(moduloId) {
@@ -7917,6 +8249,7 @@ function agregarRondaConectarCompleta(moduloId) {
         titulo: `Ronda ${evaluacion.rondas.length + 1}`,
         pares: []
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('🔗 Ronda agregada');
 }
@@ -7925,6 +8258,7 @@ function eliminarRondaConectarCompleta(moduloId, rondaIndex) {
     mostrarModalConfirmacion('¿Eliminar esta ronda?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.rondas.splice(rondaIndex, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Ronda eliminada');
     });
@@ -7936,6 +8270,7 @@ function agregarParConectar(moduloId, rondaIndex) {
         izquierda: "Concepto",
         derecha: "Definición"
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('↔️ Par agregado');
 }
@@ -7943,6 +8278,7 @@ function agregarParConectar(moduloId, rondaIndex) {
 function eliminarPar(moduloId, rondaIndex, parIndex) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.rondas[rondaIndex].pares.splice(parIndex, 1);
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
 }
 
@@ -8022,19 +8358,19 @@ function renderizarEditorCasosCompleto(moduloId, evaluacion) {
 function actualizarCaso(moduloId, casoIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.casos[casoIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarPreguntaCaso(moduloId, casoIndex, pregIndex, campo, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.casos[casoIndex].preguntas[pregIndex][campo] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function actualizarOpcionCaso(moduloId, casoIndex, pregIndex, opIndex, valor) {
     const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
     evaluacion.casos[casoIndex].preguntas[pregIndex].opciones[opIndex] = valor;
-    // No guardar automáticamente, solo al presionar Guardar
+    marcarCambioEvaluacion();
 }
 
 function agregarCasoPracticoCompleto(moduloId) {
@@ -8044,6 +8380,7 @@ function agregarCasoPracticoCompleto(moduloId) {
         narrativa: "Descripción de la situación del caso...",
         preguntas: []
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('📋 Caso agregado');
 }
@@ -8052,6 +8389,7 @@ function eliminarCasoPracticoCompleto(moduloId, casoIndex) {
     mostrarModalConfirmacion('¿Eliminar este caso?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.casos.splice(casoIndex, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Caso eliminado');
     });
@@ -8065,6 +8403,7 @@ function agregarPreguntaCaso(moduloId, casoIndex) {
         correcta: 0,
         explicacion: ""
     });
+    marcarCambioEvaluacion();
     actualizarContenidoEvaluacion(moduloId);
     mostrarNotificacionInfo('❓ Pregunta agregada');
 }
@@ -8073,6 +8412,7 @@ function eliminarPreguntaCaso(moduloId, casoIndex, pregIndex) {
     mostrarModalConfirmacion('¿Eliminar esta pregunta?', () => {
         const evaluacion = estadoAdmin.evaluacionesEditadas[moduloId];
         evaluacion.casos[casoIndex].preguntas.splice(pregIndex, 1);
+        marcarCambioEvaluacion();
         actualizarContenidoEvaluacion(moduloId);
         mostrarNotificacionInfo('🗑️ Pregunta eliminada');
     });
@@ -8189,12 +8529,80 @@ function exportarJSON() {
 }
 
 function realizarExportacionJSON() {
+    console.log('🔍 INICIANDO EXPORTACIÓN...');
+    console.log('Estado actual de estadoAdmin.modulosEditados:', estadoAdmin.modulosEditados);
+    console.log('Estado actual de estadoAdmin.evaluacionesEditadas:', estadoAdmin.evaluacionesEditadas);
+    
+    // Asegurar que estadoAdmin tenga los datos más recientes
+    // Si no están inicializados, cargarlos desde las variables globales y localStorage
+    if (!estadoAdmin.modulosEditados || Object.keys(estadoAdmin.modulosEditados).length === 0) {
+        console.log('⚠️ estadoAdmin vacío, intentando cargar desde localStorage...');
+        
+        // Intentar cargar desde localStorage primero
+        const datosGuardados = localStorage.getItem('adminContentData');
+        console.log('localStorage adminContentData:', datosGuardados ? 'existe (' + datosGuardados.length + ' chars)' : 'NO EXISTE');
+        
+        if (datosGuardados) {
+            const datos = JSON.parse(datosGuardados);
+            console.log('Datos parseados de localStorage:', {
+                modulosKeys: Object.keys(datos.modulos || {}),
+                evaluacionesKeys: Object.keys(datos.evaluaciones || {}),
+                listaModulosLength: (datos.listaModulos || []).length
+            });
+            estadoAdmin.modulosEditados = normalizarClaves(datos.modulos || {});
+            estadoAdmin.evaluacionesEditadas = normalizarClaves(datos.evaluaciones || {});
+            if (datos.listaModulos && datos.listaModulos.length > 0) {
+                MODULOS = datos.listaModulos;
+            }
+        } else {
+            console.log('⚠️ No hay localStorage, usando CONTENIDO_TEORICO original');
+            // Usar datos del JSON original
+            estadoAdmin.modulosEditados = normalizarClaves({ ...CONTENIDO_TEORICO });
+            estadoAdmin.evaluacionesEditadas = normalizarClaves({ ...CONTENIDO_EVALUACION });
+        }
+    }
+    
+    // Verificar que hay datos para exportar
+    if (!estadoAdmin.modulosEditados || Object.keys(estadoAdmin.modulosEditados).length === 0) {
+        console.error('❌ ERROR: No hay datos para exportar');
+        mostrarNotificacion('⚠️ No hay datos para exportar. Intenta recargar la página.', 'error');
+        return;
+    }
+    
+    // Limpiar la lista de módulos para exportar (quitar propiedades internas)
+    const modulosLimpios = MODULOS.map(m => ({
+        id: m.id,
+        numero: m.numero,
+        titulo: m.titulo,
+        icono: m.icono,
+        parte: m.parte,
+        clases: m.clases,
+        insignia: m.insignia,
+        sinEvaluacion: m.sinEvaluacion || false
+    }));
+    
     const dataExport = {
-        modulos: estadoAdmin.modulosEditados,
-        evaluaciones: estadoAdmin.evaluacionesEditadas
+        listaModulos: modulosLimpios,  // Estructura de módulos (títulos, iconos, etc.)
+        modulos: estadoAdmin.modulosEditados,  // Contenido HTML de cada módulo
+        evaluaciones: estadoAdmin.evaluacionesEditadas  // Configuración de evaluaciones
     };
     
+    // DEBUG: Mostrar muestra del contenido de un módulo
+    const primerModuloKey = Object.keys(dataExport.modulos)[0];
+    if (primerModuloKey) {
+        const contenido = dataExport.modulos[primerModuloKey];
+        console.log(`📄 Muestra del módulo ${primerModuloKey}:`, contenido ? contenido.substring(0, 200) + '...' : 'VACÍO');
+    }
+    
     const jsonString = JSON.stringify(dataExport, null, 2);
+    console.log('📦 JSON generado:', jsonString.length, 'caracteres');
+    console.log('📊 Estructura exportada:', {
+        listaModulos: modulosLimpios.length,
+        modulos: Object.keys(dataExport.modulos),
+        evaluaciones: Object.keys(dataExport.evaluaciones),
+        tamañoTotal: jsonString.length
+    });
+    
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
@@ -8204,7 +8612,8 @@ function realizarExportacionJSON() {
     a.click();
     
     URL.revokeObjectURL(url);
-    mostrarNotificacion('✅ JSON exportado correctamente');
+    
+    mostrarNotificacion('✅ JSON exportado - revisa la consola (F12) para detalles');
 }
 
 // ===== INICIALIZAR APP =====
